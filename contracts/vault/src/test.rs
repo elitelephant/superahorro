@@ -15,8 +15,13 @@ fn create_test_env() -> (Env, Address, VaultContractClient<'static>) {
     (env, user, client)
 }
 
+// ========================================
+// MODULE: VAULT CREATION
+// Basic creation and validation tests
+// ========================================
+
 #[test]
-fn test_create_vault_success() {
+fn test_01_create_vault_basic_success() {
     let (env, user, client) = create_test_env();
     
     let amount = 1_000_0000000; // 1000 USDC (with 7 decimals)
@@ -38,7 +43,7 @@ fn test_create_vault_success() {
 }
 
 #[test]
-fn test_create_multiple_vaults() {
+fn test_02_create_multiple_vaults_different_amounts() {
     let (env, user, client) = create_test_env();
     
     let vault_id_1 = client.create_vault(&user, &500_0000000, &30);
@@ -51,36 +56,46 @@ fn test_create_multiple_vaults() {
     assert_eq!(client.get_vault_count(), 3);
 }
 
+// ========================================
+// MODULE: INPUT VALIDATION
+// Tests for rejection of invalid parameters
+// ========================================
+
 #[test]
 #[should_panic(expected = "Amount must be positive")]
-fn test_create_vault_zero_amount() {
+fn test_03_reject_zero_amount() {
     let (_env, user, client) = create_test_env();
     client.create_vault(&user, &0, &30);
 }
 
 #[test]
 #[should_panic(expected = "Amount must be positive")]
-fn test_create_vault_negative_amount() {
+fn test_04_reject_negative_amount() {
     let (_env, user, client) = create_test_env();
     client.create_vault(&user, &-100, &30);
 }
 
 #[test]
 #[should_panic(expected = "Lock duration must be between 7 and 365 days")]
-fn test_create_vault_duration_too_short() {
+fn test_05_reject_duration_below_minimum() {
     let (_env, user, client) = create_test_env();
     client.create_vault(&user, &1000_0000000, &5); // Less than 7 days
 }
 
 #[test]
 #[should_panic(expected = "Lock duration must be between 7 and 365 days")]
-fn test_create_vault_duration_too_long() {
+fn test_06_reject_duration_above_maximum() {
     let (_env, user, client) = create_test_env();
     client.create_vault(&user, &1000_0000000, &400); // More than 365 days
 }
 
+// ========================================
+// MODULE: NORMAL WITHDRAWALS
+// Tests for withdrawal after unlock period
+// ========================================
+
 #[test]
-fn test_withdraw_success() {
+fn test_07_withdraw_after_unlock_period() {
     let (env, user, client) = create_test_env();
     
     let amount = 1000_0000000;
@@ -101,7 +116,7 @@ fn test_withdraw_success() {
 
 #[test]
 #[should_panic(expected = "Vault still locked")]
-fn test_withdraw_before_unlock() {
+fn test_08_withdraw_before_unlock() {
     let (env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -112,7 +127,7 @@ fn test_withdraw_before_unlock() {
 
 #[test]
 #[should_panic(expected = "Vault already withdrawn")]
-fn test_withdraw_twice() {
+fn test_09_withdraw_twice() {
     let (env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -126,8 +141,13 @@ fn test_withdraw_twice() {
     client.withdraw(&vault_id); // Second should panic
 }
 
+// ========================================
+// MODULE: EARLY WITHDRAWALS
+// Tests for early withdrawal with penalties
+// ========================================
+
 #[test]
-fn test_early_withdraw_with_5_percent_penalty() {
+fn test_10_early_withdraw_with_5_percent_penalty() {
     let (_env, user, client) = create_test_env();
     
     let amount = 1000_0000000; // 1000 USDC
@@ -146,7 +166,7 @@ fn test_early_withdraw_with_5_percent_penalty() {
 }
 
 #[test]
-fn test_early_withdraw_with_10_percent_penalty() {
+fn test_11_early_withdraw_with_10_percent_penalty() {
     let (_env, user, client) = create_test_env();
     
     let amount = 2000_0000000; // 2000 USDC
@@ -162,7 +182,7 @@ fn test_early_withdraw_with_10_percent_penalty() {
 
 #[test]
 #[should_panic(expected = "Penalty must be between 5 and 10 percent")]
-fn test_early_withdraw_penalty_too_low() {
+fn test_12_early_withdraw_penalty_too_low() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -171,7 +191,7 @@ fn test_early_withdraw_penalty_too_low() {
 
 #[test]
 #[should_panic(expected = "Penalty must be between 5 and 10 percent")]
-fn test_early_withdraw_penalty_too_high() {
+fn test_13_early_withdraw_penalty_too_high() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -180,7 +200,7 @@ fn test_early_withdraw_penalty_too_high() {
 
 #[test]
 #[should_panic(expected = "Vault already withdrawn")]
-fn test_early_withdraw_twice() {
+fn test_14_early_withdraw_twice() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -189,23 +209,29 @@ fn test_early_withdraw_twice() {
     client.early_withdraw(&vault_id, &5); // Second should panic
 }
 
+// ========================================
+// MODULE: QUERIES AND UTILITIES
+// Tests for data retrieval and utility functions
+// ========================================
+
 #[test]
 #[should_panic(expected = "Vault not found")]
-fn test_get_nonexistent_vault() {
+fn test_15_get_nonexistent_vault() {
     let (_env, _user, client) = create_test_env();
     
     client.get_vault(&999).unwrap(); // Vault doesn't exist
 }
 
 #[test]
-fn test_get_vault_count_empty() {
+fn test_16_get_vault_count_empty() {
     let (_env, _user, client) = create_test_env();
     
-    assert_eq!(client.get_vault_count(), 0);
+    let count = client.get_vault_count();
+    assert_eq!(count, 0);
 }
 
 #[test]
-fn test_multiple_users() {
+fn test_17_multiple_users() {
     let (env, user1, client) = create_test_env();
     let user2 = Address::generate(&env);
     
@@ -222,8 +248,13 @@ fn test_multiple_users() {
     assert_eq!(client.get_vault(&vault3).unwrap().owner, user2);
 }
 
+// ========================================
+// MODULE: TIMING AND PRECISION
+// Tests for time calculations and numeric precision
+// ========================================
+
 #[test]
-fn test_vault_timing_exact_unlock() {
+fn test_18_vault_timing_exact_unlock() {
     let (env, user, client) = create_test_env();
     
     let amount = 1000_0000000;
@@ -241,7 +272,7 @@ fn test_vault_timing_exact_unlock() {
 }
 
 #[test]
-fn test_vault_created_at_timestamp() {
+fn test_19_vault_created_at_timestamp() {
     let (env, user, client) = create_test_env();
     
     let start_time = env.ledger().timestamp();
@@ -252,7 +283,7 @@ fn test_vault_created_at_timestamp() {
 }
 
 #[test]
-fn test_early_withdraw_calculation_precision() {
+fn test_20_early_withdraw_calculation_precision() {
     let (_env, user, client) = create_test_env();
     
     // Test with odd amount to verify precision
@@ -264,12 +295,17 @@ fn test_early_withdraw_calculation_precision() {
     
     // 7% of 1337 = 93.59 USDC = 93_5900000 stroops
     assert_eq!(penalty, 93_5900000);
-    assert_eq!(amount_to_user, 1243_5100000); // 1243.51 USDC
+    assert_eq!(amount_to_user, 1243_4100000); // 1243.41 USDC (1337 - 93.59)
     assert_eq!(amount_to_user + penalty, amount); // Total should equal original
 }
 
+// ========================================
+// MODULE: STATE CHANGES
+// Tests for vault state transitions
+// ========================================
+
 #[test]
-fn test_withdraw_changes_vault_state() {
+fn test_21_withdraw_changes_vault_state() {
     let (env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -292,7 +328,7 @@ fn test_withdraw_changes_vault_state() {
 }
 
 #[test]
-fn test_early_withdraw_changes_vault_state() {
+fn test_22_early_withdraw_changes_vault_state() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -307,8 +343,13 @@ fn test_early_withdraw_changes_vault_state() {
     assert_eq!(client.get_vault(&vault_id).unwrap().is_active, false);
 }
 
+// ========================================
+// MODULE: BOUNDARIES AND LIMITS
+// Tests for edge cases and boundary conditions
+// ========================================
+
 #[test]
-fn test_minimum_lock_duration_boundary() {
+fn test_23_minimum_lock_duration_boundary() {
     let (_env, user, client) = create_test_env();
     
     // 7 days is minimum - should work
@@ -317,7 +358,7 @@ fn test_minimum_lock_duration_boundary() {
 }
 
 #[test]
-fn test_maximum_lock_duration_boundary() {
+fn test_24_maximum_lock_duration_boundary() {
     let (_env, user, client) = create_test_env();
     
     // 365 days is maximum - should work
@@ -326,7 +367,7 @@ fn test_maximum_lock_duration_boundary() {
 }
 
 #[test]
-fn test_minimum_penalty_boundary() {
+fn test_25_minimum_penalty_boundary() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -338,7 +379,7 @@ fn test_minimum_penalty_boundary() {
 }
 
 #[test]
-fn test_maximum_penalty_boundary() {
+fn test_26_maximum_penalty_boundary() {
     let (_env, user, client) = create_test_env();
     
     let vault_id = client.create_vault(&user, &1000_0000000, &30);
@@ -349,8 +390,13 @@ fn test_maximum_penalty_boundary() {
     assert_eq!(amount_to_user, 900_0000000);
 }
 
+// ========================================
+// MODULE: SCALABILITY
+// Tests for large amounts and multiple operations
+// ========================================
+
 #[test]
-fn test_large_amount_vault() {
+fn test_27_large_amount_vault() {
     let (env, user, client) = create_test_env();
     
     // Test with large amount (1 million USDC)
@@ -367,7 +413,7 @@ fn test_large_amount_vault() {
 }
 
 #[test]
-fn test_small_amount_vault() {
+fn test_28_small_amount_vault() {
     let (_env, user, client) = create_test_env();
     
     // Test with small amount (1 USDC)
@@ -379,33 +425,33 @@ fn test_small_amount_vault() {
 }
 
 #[test]
-fn test_sequential_vault_ids() {
+fn test_29_sequential_vault_ids() {
     let (_env, user, client) = create_test_env();
     
-    let id1 = client.create_vault(&user, &100_0000000, &30);
-    let id2 = client.create_vault(&user, &200_0000000, &60);
-    let id3 = client.create_vault(&user, &300_0000000, &90);
+    let id1 = client.create_vault(&user, &100_0000000, &7);
+    let id2 = client.create_vault(&user, &200_0000000, &14);
+    let id3 = client.create_vault(&user, &300_0000000, &21);
+    let id4 = client.create_vault(&user, &400_0000000, &28);
     
-    // IDs should be sequential
     assert_eq!(id1, 1);
     assert_eq!(id2, 2);
     assert_eq!(id3, 3);
+    assert_eq!(id4, 4);
 }
 
 #[test]
-fn test_get_vault_returns_none_for_future_id() {
-    let (_env, _user, client) = create_test_env();
+fn test_30_vault_timing_after_unlock() {
+    let (env, user, client) = create_test_env();
     
-    // No vaults created yet
-    let result = client.get_vault(&1);
-    assert_eq!(result, None);
+    let amount = 500_0000000;
+    let vault_id = client.create_vault(&user, &amount, &30);
     
-    // Create one vault
-    let (_env2, user2, _) = create_test_env();
-    client.create_vault(&user2, &1000_0000000, &30);
+    // Fast-forward way past unlock (60 days instead of 30)
+    env.ledger().with_mut(|li| {
+        li.timestamp = li.timestamp + (60 * 24 * 60 * 60);
+    });
     
-    // ID 2 doesn't exist yet
-    let result2 = client.get_vault(&2);
-    assert_eq!(result2, None);
+    // Should still be able to withdraw
+    let withdrawn = client.withdraw(&vault_id);
+    assert_eq!(withdrawn, amount);
 }
-

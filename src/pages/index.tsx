@@ -21,7 +21,7 @@ const HomePage: NextPage = () => {
 
           {/* Vault Contract Coming Soon */}
           <div tw="bg-gray-800 rounded-lg p-6 text-center max-w-md">
-            <h2 tw="text-2xl font-bold mb-4">🔒 Bóveda de Ahorro</h2>
+            <h2 tw="text-2xl font-bold mb-4">Savings Vault</h2>
             <p tw="text-gray-400 mb-4">
               Crea tu bóveda con bloqueo temporal y empieza a ahorrar con disciplina.
             </p>

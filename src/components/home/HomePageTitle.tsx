@@ -48,12 +48,6 @@ export const HomePageTitle: FC = () => {
             <img src="/icons/github-button.svg" alt="Github Repository" />
           </StyledIconLink>
         </div>
-            <Image src={telegramIcon} priority height={32} alt="Telegram Group" />
-          </StyledIconLink>
-          <StyledIconLink href={sponsorHref} target="_blank">
-            <Image src={sponsorIcon} priority height={32} alt="Sponsor the Project" />
-          </StyledIconLink>
-        </div>
 
         <div tw="my-14 w-14 bg-gray-800 h-[2px]" />
       </div>

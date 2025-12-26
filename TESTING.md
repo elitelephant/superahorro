@@ -1,21 +1,21 @@
-# Testing Strategy - StellarSavings
+# Testing Strategy - SuperAhorro
 
 ## Overview
-Esta estrategia define cómo testearemos cada componente de StellarSavings para asegurar calidad y seguridad.
+This strategy defines how to test each component of SuperAhorro to ensure quality and security.
 
 ## 1. Smart Contract Testing (Rust)
 
 ### Unit Tests
-**Ubicación**: `contracts/*/src/test.rs`
+**Location**: `contracts/*/src/test.rs`
 
-**Qué testear**:
-- ✅ Funciones individuales del contrato
-- ✅ Validación de inputs
-- ✅ Manejo de errores
-- ✅ Cálculos de penalties
-- ✅ Lógica de time-locks
+**What to test**:
+- Individual contract functions
+- Input validation
+- Error handling
+- Penalty calculations
+- Time-lock logic
 
-**Ejemplo para Vault Contract**:
+**Example for Vault Contract**:
 ```rust
 #[test]
 fn test_create_vault() {
@@ -37,22 +37,53 @@ fn test_create_vault() {
 #[test]
 #[should_panic(expected = "Vault locked")]
 fn test_early_withdrawal_fails() {
-    // Test que no se puede retirar antes del unlock
+    // Test that withdrawal before unlock fails
 }
 ```
 
-**Comando**: `cd contracts/vault && cargo test`
+**Useful Commands**:
+```bash
+# All tests
+cd contracts/vault && cargo test
+
+# Specific test
+cargo test test_create_vault_success
+
+# Tests with detailed output
+cargo test -- --nocapture
+
+# Tests containing a keyword
+cargo test withdraw
+
+# Compile without running
+cargo test --no-run
+```
+
+**Windows Note**: Some tests with `#[should_panic]` may fail due to `STATUS_STACK_BUFFER_OVERRUN`. In that case, run individual tests:
+```bash
+cargo test test_create_vault_success
+cargo test test_withdraw_success
+cargo test test_vault_timing_exact_unlock
+```
+
+**Current Vault Contract Suite** (30+ tests):
+- Vault creation (basic, multiple, limits)
+- Normal withdrawals (after unlock)
+- Early withdrawals (with 5-10% penalties)
+- Precise timing (exact timestamp)
+- Scalability (1 USDC to 1M USDC)
+- Range validations (7-365 days)
 
 ---
 
 ### Integration Tests
-**Ubicación**: `contracts/*/integration_tests/`
+**Location**: `contracts/*/integration_tests/`
 
-**Qué testear**:
-- ✅ Interacción entre Vault y Penalty Pool
-- ✅ Flow completo: create → deposit → early withdraw → penalty aplicado
-- ✅ Distribución de rewards del pool
-- ✅ Múltiples usuarios interactuando
+**What to test**:
+- Interaction between Vault and Penalty Pool
+- Complete flow: create → deposit → early withdraw → penalty applied
+- Reward distribution from pool
+- Multiple users interacting
 
 **Tools**: Soroban SDK test utilities
 
@@ -63,13 +94,13 @@ fn test_early_withdrawal_fails() {
 ### Component Tests
 **Framework**: Jest + React Testing Library
 
-**Qué testear**:
-- ✅ Renderizado de componentes
-- ✅ Interacciones del usuario (clicks, forms)
-- ✅ Estados de loading/error
-- ✅ Validación de formularios
+**What to test**:
+- Component rendering
+- User interactions (clicks, forms)
+- Loading/error states
+- Form validation
 
-**Ejemplo**:
+**Example**:
 ```typescript
 // VaultForm.test.tsx
 test('validates USDC amount input', () => {
@@ -81,20 +112,20 @@ test('validates USDC amount input', () => {
 });
 ```
 
-**Comando**: `npm test`
+**Command**: `npm test`
 
 ---
 
 ### E2E Tests (End-to-End)
-**Framework**: Playwright o Cypress
+**Framework**: Playwright or Cypress
 
-**Qué testear**:
-- ✅ Conexión de wallet completa
-- ✅ Crear vault desde UI → firma transacción → confirmación
-- ✅ Dashboard muestra vaults correctamente
-- ✅ Flow de early withdrawal con penalty
+**What to test**:
+- Complete wallet connection
+- Create vault from UI → sign transaction → confirmation
+- Dashboard displays vaults correctly
+- Early withdrawal flow with penalty
 
-**Ejemplo flow**:
+**Example flow**:
 ```typescript
 test('create vault e2e', async ({ page }) => {
   await page.goto('http://localhost:3000');
@@ -113,12 +144,12 @@ test('create vault e2e', async ({ page }) => {
 ## 3. Contract Deployment Testing
 
 ### Testnet Deployment
-**Red**: Testnet (Test SDF Network ; September 2015)
+**Network**: Testnet (Test SDF Network ; September 2015)
 
-**Proceso**:
-1. Deploy contract a Testnet
-2. Verificar en Stellar Explorer
-3. Probar funciones vía CLI:
+**Process**:
+1. Deploy contract to Testnet
+2. Verify in Stellar Explorer
+3. Test functions via CLI:
    ```bash
    stellar contract invoke \
      --id CDWGVPSUXXSGABQ663FVV4TZJH4Q2R3HVAKTKWFFFMWPF23O7KMNS4KU \
@@ -131,25 +162,25 @@ test('create vault e2e', async ({ page }) => {
      --lock_until 1735000000
    ```
 
-4. Probar desde dApp en localhost
+4. Test from dApp on localhost
 
-### Futurenet Testing (Opcional)
-Para features experimentales usar Futurenet.
+### Futurenet Testing (Optional)
+For experimental features, use Futurenet.
 
 ---
 
 ## 4. Security Testing
 
 ### Audit Checklist
-- [ ] Reentrancy attacks - ¿puede llamarse recursivamente?
-- [ ] Integer overflow - ¿usamos checked arithmetic?
-- [ ] Authorization - ¿verificamos ownership correctamente?
-- [ ] Time manipulation - ¿depende solo de timestamps on-chain?
-- [ ] Penalty calculation - ¿puede explotarse matemática?
+- [ ] Reentrancy attacks - Can it be called recursively?
+- [ ] Integer overflow - Are we using checked arithmetic?
+- [ ] Authorization - Do we verify ownership correctly?
+- [ ] Time manipulation - Does it only depend on on-chain timestamps?
+- [ ] Penalty calculation - Can the math be exploited?
 
 ### Tools
-- `cargo clippy` - Linter para bugs comunes
-- `cargo audit` - Vulnerabilidades en deps
+- `cargo clippy` - Linter for common bugs
+- `cargo audit` - Vulnerabilities in dependencies
 - Manual code review
 
 ---
@@ -157,32 +188,32 @@ Para features experimentales usar Futurenet.
 ## 5. Performance Testing
 
 ### Gas/Fee Optimization
-Medir fees de cada operación:
+Measure fees for each operation:
 - Create vault: ~0.0001 XLM
 - Early withdrawal: ~0.0002 XLM
-- Distribute rewards: ¿Escala con usuarios?
+- Distribute rewards: Does it scale with users?
 
-**Objetivo**: Todas las ops < 0.001 XLM
+**Goal**: All operations < 0.001 XLM
 
 ---
 
 ## 6. User Acceptance Testing (UAT)
 
 ### Beta Testers
-- 5-10 usuarios reales en Testnet
-- Feedback sobre UX, clarity, bugs
+- 5-10 real users on Testnet
+- Feedback on UX, clarity, bugs
 
 ### Metrics
-- ¿Cuánto tiempo toma crear primer vault?
-- ¿Usuarios entienden el penalty system?
-- ¿Confusión con Freighter?
+- How long does it take to create first vault?
+- Do users understand the penalty system?
+- Any confusion with Freighter?
 
 ---
 
 ## Testing Timeline
 
-### Fase MVP:
-- **Week 1**: Unit tests para Vault contract
+### MVP Phase:
+- **Week 1**: Unit tests for Vault contract
 - **Week 2**: Integration tests Vault + Pool
 - **Week 3**: Frontend component tests
 - **Week 4**: Testnet deployment + manual testing
@@ -190,9 +221,9 @@ Medir fees de cada operación:
 
 ### CI/CD (Future):
 - GitHub Actions:
-  - Run `cargo test` en PRs
-  - Run `npm test` en PRs
-  - Deploy automático a Testnet en merge a `develop`
+  - Run `cargo test` on PRs
+  - Run `npm test` on PRs
+  - Auto-deploy to Testnet on merge to `develop`
 
 ---
 
@@ -218,7 +249,7 @@ cd contracts/vault && stellar contract build
 ---
 
 ## Notes
-- **SIEMPRE** testear en Testnet antes de mainnet
-- Usar Friendbot para fondos de test gratis
-- Mantener tests actualizados con features nuevas
-- Documentar casos edge en tests
+- **ALWAYS** test on Testnet before mainnet
+- Use Friendbot for free test funds
+- Keep tests updated with new features
+- Document edge cases in tests
