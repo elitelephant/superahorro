@@ -10,7 +10,7 @@ const StyledIconLink = styled(Link)(() => [
 export const HomePageTitle: FC = () => {
   const title = '🌟 SuperAhorro'
   const desc = 'Ahorra con disciplina, gana con constancia'
-  const githubHref = 'https://github.com/yourusername/superahorro'
+  const githubHref = 'https://github.com/elitelephant/superahorro'
 
   return (
     <>
@@ -31,14 +31,15 @@ export const HomePageTitle: FC = () => {
           Plataforma de ahorro con bloqueo temporal en Stellar
         </p>
         <p tw="mt-2 text-gray-600 text-sm">
-          Creado con {' '}
+          Construido sobre {' '}
           <a
-            href="https://soroban.stellar.org/"
+            href="https://github.com/paltalabs/soroban-react-boilerplate"
             target="_blank"
             tw="font-semibold text-gray-500 hover:text-gray-100"
           >
-            Soroban Smart Contracts
+            Soroban React Boilerplate
           </a>
+          {' '} por PaltaLabs
         </p>
         <p tw="mt-4 mb-6 text-gray-400">{desc}</p>
 

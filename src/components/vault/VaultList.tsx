@@ -4,6 +4,7 @@ import { VaultCard } from './VaultCard'
 import toast from 'react-hot-toast'
 import 'twin.macro'
 import { Client } from '@/contracts/src/index'
+import { Card } from '@chakra-ui/react'
 
 interface Vault {
   id: number
@@ -91,20 +92,20 @@ export const VaultList = () => {
       </div>
 
       {!address ? (
-        <div tw="bg-gray-800 rounded-lg p-8 text-center">
+        <Card variant="outline" p={8} bgColor="whiteAlpha.100" textAlign="center">
           <p tw="text-gray-400">Connect your wallet to view your vaults</p>
-        </div>
+        </Card>
       ) : loading ? (
-        <div tw="bg-gray-800 rounded-lg p-8 text-center">
+        <Card variant="outline" p={8} bgColor="whiteAlpha.100" textAlign="center">
           <p tw="text-gray-400">Loading your vaults...</p>
-        </div>
+        </Card>
       ) : vaults.length === 0 ? (
-        <div tw="bg-gray-800 rounded-lg p-8">
+        <Card variant="outline" p={8} bgColor="whiteAlpha.100">
           <p tw="text-gray-400 text-center mb-4">No vaults yet</p>
           <p tw="text-sm text-gray-500 text-center">
             Create your first savings vault to get started
           </p>
-        </div>
+        </Card>
       ) : (
         <div tw="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vaults.map((vault) => (

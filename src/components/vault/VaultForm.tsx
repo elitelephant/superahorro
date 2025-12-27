@@ -1,15 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
 import { Client } from '@/contracts/src/index'
 import { rpc } from '@/contracts/src/index'
+import { Card } from '@chakra-ui/react'
 
 export const VaultForm = () => {
   const { address, server, connectors } = useSorobanReact()
   const [amount, setAmount] = useState('')
   const [lockDays, setLockDays] = useState('30')
   const [isLoading, setIsLoading] = useState(false)
+  const [balance, setBalance] = useState<string>('0')
+
+  // Fetch balance when address changes
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!address) return
+      try {
+        // Use Horizon API directly for testnet balance
+        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${address}`)
+        const accountData = await response.json()
+        const xlmBalance = accountData.balances.find((b: any) => b.asset_type === 'native')
+        if (xlmBalance) {
+          const balanceInXLM = (parseFloat(xlmBalance.balance)).toFixed(2)
+          setBalance(balanceInXLM)
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error)
+      }
+    }
+    void fetchBalance()
+  }, [address])
 
   const handleCreateVault = async () => {
     if (!address || !server) {
@@ -18,13 +40,23 @@ export const VaultForm = () => {
     }
 
     if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount')
+      toast.error('Por favor ingresa una cantidad válida mayor a 0')
+      return
+    }
+
+    const amountNum = parseFloat(amount)
+    const balanceNum = parseFloat(balance)
+
+    // Only check balance if we have a valid balance (not 0 or loading)
+    if (balanceNum > 0 && amountNum > balanceNum) {
+      toast.error(`Balance insuficiente. Tienes ${balance} XLM pero intentas guardar ${amount} XLM`)
       return
     }
 
     const days = parseInt(lockDays)
+    
     if (days < 7 || days > 365) {
-      toast.error('Lock duration must be between 7 and 365 days')
+      toast.error('La duración debe estar entre 7 y 365 días')
       return
     }
 
@@ -70,20 +102,54 @@ export const VaultForm = () => {
         }
       })
       
+      toast.dismiss()
       toast.success('Vault created successfully!')
       setAmount('')
       setLockDays('30')
+      
+      // Refresh balance using Horizon API
+      try {
+        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${address}`)
+        const accountData = await response.json()
+        const xlmBalance = accountData.balances.find((b: any) => b.asset_type === 'native')
+        if (xlmBalance) {
+          setBalance((parseFloat(xlmBalance.balance)).toFixed(2))
+        }
+      } catch (err) {
+        console.error('Error refreshing balance:', err)
+      }
     } catch (error: any) {
       console.error('Error creating vault:', error)
-      toast.error(error?.message || 'Failed to create vault')
+      toast.dismiss()
+      
+      // Specific error messages
+      let errorMsg = 'Error al crear el vault'
+      if (error?.message?.includes('insufficient')) {
+        errorMsg = `Balance insuficiente. Necesitas ${amount} XLM + fees (~0.01 XLM)`
+      } else if (error?.message?.includes('not found')) {
+        errorMsg = 'Wallet no conectado correctamente. Reconecta Freighter'
+      } else if (error?.message?.includes('timeout')) {
+        errorMsg = 'Transacción expiró. Intenta nuevamente'
+      } else if (error?.message) {
+        errorMsg = error.message
+      }
+      
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div tw="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-      <h2 tw="text-2xl font-bold mb-4">Create Savings Vault</h2>
+    <Card variant="outline" p={6} bgColor="whiteAlpha.100" maxW="md" w="full">
+      <h2 tw="text-xl font-bold mb-4 text-center">Create Savings Vault</h2>
+      
+      {address && (
+        <div tw="mb-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+          <div tw="text-xs text-gray-400 mb-1">Available Balance</div>
+          <div tw="text-lg font-semibold text-white">{balance} XLM</div>
+        </div>
+      )}
       
       <div tw="space-y-4">
         <div>
@@ -104,7 +170,7 @@ export const VaultForm = () => {
 
         <div>
           <label tw="block text-sm font-medium text-gray-300 mb-2">
-            Lock Duration (days)
+            Lock Duration
           </label>
           <select
             value={lockDays}
@@ -136,6 +202,6 @@ export const VaultForm = () => {
           </p>
         )}
       </div>
-    </div>
+    </Card>
   )
 }

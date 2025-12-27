@@ -3,6 +3,7 @@ import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
 import { Client } from '@/contracts/src/index'
+import { Card } from '@chakra-ui/react'
 
 interface Vault {
   id: number
@@ -19,7 +20,7 @@ interface VaultCardProps {
 }
 
 export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
-  const { address, activeChain, server } = useSorobanReact()
+  const { address, activeChain, server, connectors } = useSorobanReact()
   const [isLoading, setIsLoading] = useState(false)
   const [showEarlyWithdraw, setShowEarlyWithdraw] = useState(false)
   const FIXED_PENALTY = 7
@@ -60,19 +61,21 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       
       const contractAddress = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
       const client = new Client({
+        publicKey: address,
         contractId: contractAddress,
-        networkPassphrase: activeChain?.networkPassphrase || '',
-        rpcUrl: server.serverURL.toString(),
+        networkPassphrase: 'Test SDF Network ; September 2015',
+        rpcUrl: 'https://soroban-testnet.stellar.org'
       })
 
       const tx = await client.withdraw({
         vault_id: BigInt(vault.id),
       })
 
-      const connector = (window as any).freighterApi
+      // Get connector from soroban-react (same as VaultForm)
+      const connector = connectors?.[0]
       
       if (!connector) {
-        throw new Error('Freighter wallet not found')
+        throw new Error('No wallet connector found')
       }
 
       toast.loading('Sign transaction in Freighter...')
@@ -80,7 +83,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       await tx.signAndSend({
         signTransaction: async (xdr: string) => {
           const signedXdr = await connector.signTransaction(xdr, {
-            networkPassphrase: activeChain?.networkPassphrase || ''
+            networkPassphrase: 'Test SDF Network ; September 2015'
           })
           return {
             signedTxXdr: signedXdr
@@ -94,7 +97,18 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
     } catch (error: any) {
       console.error('Error withdrawing:', error)
       toast.dismiss()
-      toast.error(error?.message || 'Failed to withdraw')
+      
+      let errorMsg = 'Error al hacer el retiro'
+      if (error?.message?.includes('locked') || error?.message?.includes('Still locked')) {
+        const unlockDate = new Date(vault.unlockTime * 1000).toLocaleString('es-ES')
+        errorMsg = `Este vault se desbloquea el ${unlockDate}`
+      } else if (error?.message?.includes('not active')) {
+        errorMsg = 'Este vault ya fue retirado'
+      } else if (error?.message) {
+        errorMsg = error.message
+      }
+      
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
     }
@@ -111,20 +125,21 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       
       const contractAddress = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
       const client = new Client({
+        publicKey: address,
         contractId: contractAddress,
-        networkPassphrase: activeChain?.networkPassphrase || '',
-        rpcUrl: server.serverURL.toString(),
+        networkPassphrase: 'Test SDF Network ; September 2015',
+        rpcUrl: 'https://soroban-testnet.stellar.org'
       })
 
       const tx = await client.early_withdraw({
         vault_id: BigInt(vault.id),
         penalty_percent: FIXED_PENALTY,
       })
-
-      const connector = (window as any).freighterApi
+// Get connector from soroban-react (same as VaultForm)
+      const connector = connectors?.[0]
       
       if (!connector) {
-        throw new Error('Freighter wallet not found')
+        throw new Error('No wallet connector found')
       }
 
       toast.loading('Sign transaction in Freighter...')
@@ -132,7 +147,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       await tx.signAndSend({
         signTransaction: async (xdr: string) => {
           const signedXdr = await connector.signTransaction(xdr, {
-            networkPassphrase: activeChain?.networkPassphrase || ''
+            networkPassphrase: 'Test SDF Network ; September 2015'
           })
           return {
             signedTxXdr: signedXdr
@@ -146,7 +161,19 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
     } catch (error: any) {
       console.error('Error with early withdrawal:', error)
       toast.dismiss()
-      toast.error(error?.message || 'Failed to process early withdrawal')
+      
+      let errorMsg = 'Error en retiro anticipado'
+      if (error?.message?.includes('already unlocked')) {
+        errorMsg = 'Este vault ya está desbloqueado. Usa retiro normal'
+      } else if (error?.message?.includes('not active')) {
+        errorMsg = 'Este vault ya fue retirado'
+      } else if (error?.message?.includes('penalty')) {
+        errorMsg = 'Penalización inválida. Debe ser 7%'
+      } else if (error?.message) {
+        errorMsg = error.message
+      }
+      
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
       setShowEarlyWithdraw(false)
@@ -155,19 +182,19 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
 
   if (!vault.isActive) {
     return (
-      <div tw="bg-gray-800 border border-gray-700 rounded-lg p-4 opacity-50">
+      <Card variant="outline" p={4} bgColor="whiteAlpha.50" opacity={0.6}>
         <div tw="flex justify-between items-center mb-2">
           <span tw="text-sm font-medium text-gray-400">Vault #{vault.id}</span>
           <span tw="text-xs bg-gray-700 px-2 py-1 rounded">Withdrawn</span>
         </div>
         <div tw="text-lg font-bold text-gray-500">{formatAmount(vault.amount)} XLM</div>
         <div tw="text-sm text-gray-500 mt-1">Completed</div>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div tw="bg-gray-800 border border-gray-600 rounded-lg p-4">
+    <Card variant="outline" p={4} bgColor="whiteAlpha.100">
       <div tw="flex justify-between items-center mb-2">
         <span tw="text-sm font-medium text-gray-400">Vault #{vault.id}</span>
         {isUnlocked ? (
@@ -240,6 +267,6 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
           </>
         )}
       </div>
-    </div>
+    </Card>
   )
 }

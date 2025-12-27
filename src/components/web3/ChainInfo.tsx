@@ -51,11 +51,11 @@ export const ChainInfo: FC = () => {
 
   return (
     <>
-      <div tw="flex grow flex-col space-y-4 max-w-[20rem]">
-        <h2 tw="text-center font-mono text-gray-400">Chain Info</h2>
+      <Card variant="outline" p={6} bgColor="whiteAlpha.100" maxW="md" w="full">
+        <h2 tw="text-xl font-bold mb-4 text-center">Chain Info</h2>
 
-        <Card variant="outline" p={4} bgColor="whiteAlpha.100">
-          {/* Metadata */}
+        {/* Metadata */}
+        <div tw="space-y-3">
           {Object.entries(chainInfo ?? {}).map(([key, value]:[string, string]) => (
             <div key={key} tw="text-sm leading-7">
               {key}:
@@ -64,53 +64,19 @@ export const ChainInfo: FC = () => {
               </strong>
             </div>
           ))}
+        </div>
 
-          {/* <div tw="mt-3 flex items-center justify-center space-x-3"> */}
-            {/* Explorer Link */}
-            {
-              <Link
-                href={"https://stellar.expert/explorer/testnet/"}
-                target="_blank"
-                tw="flex items-center justify-center gap-1 text-center text-sm text-gray-400 hover:text-white"
-              >
-                TestNet Explorer <HiOutlineExternalLink />
-              </Link>
-            }
-            {/* Faucet Link */}
-            {/* {!!activeChain?.faucetUrls?.length && (
-              <Link
-                href={activeChain.faucetUrls[0]}
-                target="_blank"
-                tw="flex items-center justify-center gap-1 text-center text-sm text-gray-400 hover:text-white"
-              >
-                Faucet <HiOutlineExternalLink />
-              </Link>
-            )} */}
-            {/* Contracts UI Link */}
-            {/* {!!activeChain?.rpcUrls?.length && (
-              <Link
-                href={`https://contracts-ui.substrate.io/?rpc=${activeChain.rpcUrls[0]}`}
-                target="_blank"
-                tw="flex items-center justify-center gap-1 text-center text-sm text-gray-400 hover:text-white"
-              >
-                Contracts UI <HiOutlineExternalLink />
-              </Link>
-            )} */}
-          {/* </div> */}
-        </Card>
-
-        {/* Mainnet Security Disclaimer */}
-        {/* {!activeChain?.testnet && (
-          <>
-            <h2 tw="text-center font-mono text-red-400">Security Disclaimer</h2>
-
-            <Card variant="outline" p={4} bgColor="red.500" borderColor="red.300" fontSize={'sm'}>
-              You are interacting with un-audited mainnet contracts and risk all your funds. Never
-              transfer tokens to this contract.
-            </Card>
-          </>
-        )} */}
-      </div>
+        {/* Explorer Link */}
+        <div tw="mt-4 pt-4 border-t border-gray-700">
+          <Link
+            href={"https://stellar.expert/explorer/testnet/"}
+            target="_blank"
+            tw="flex items-center justify-center gap-1 text-center text-sm text-gray-400 hover:text-white"
+          >
+            TestNet Explorer <HiOutlineExternalLink />
+          </Link>
+        </div>
+      </Card>
     </>
   )
 }
