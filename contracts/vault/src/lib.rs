@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env};
 
 /// Represents a single savings vault
 #[contracttype]
@@ -19,11 +19,25 @@ pub struct VaultContract;
 #[contractimpl]
 impl VaultContract {
     
+    /// Initialize the contract with the token address (XLM native or USDC)
+    /// Must be called once before using the contract
+    pub fn initialize(env: Env, admin: Address, token: Address) {
+        if env.storage().instance().has(&symbol_short!("INIT")) {
+            panic!("Already initialized");
+        }
+        
+        admin.require_auth();
+        
+        env.storage().instance().set(&symbol_short!("TOKEN"), &token);
+        env.storage().instance().set(&symbol_short!("ADMIN"), &admin);
+        env.storage().instance().set(&symbol_short!("INIT"), &true);
+    }
+    
     /// Creates a new vault for the caller
     /// 
     /// # Arguments
     /// * `owner` - Address of the vault owner
-    /// * `amount` - Amount to lock (in USDC stroops, 1 USDC = 10^7 stroops)
+    /// * `amount` - Amount to lock (in stroops, 1 XLM/USDC = 10^7 stroops)
     /// * `lock_duration_days` - Number of days to lock funds
     /// 
     /// # Returns
@@ -44,6 +58,18 @@ impl VaultContract {
         if lock_duration_days < 7 || lock_duration_days > 365 {
             panic!("Lock duration must be between 7 and 365 days");
         }
+        
+        // Get token contract
+        let token_address: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("TOKEN"))
+            .expect("Contract not initialized");
+        
+        let token = token::Client::new(&env, &token_address);
+        
+        // Transfer tokens from user to contract
+        token.transfer(&owner, &env.current_contract_address(), &amount);
         
         // Calculate unlock time
         let current_time = env.ledger().timestamp();
@@ -101,6 +127,18 @@ impl VaultContract {
             panic!("Vault still locked");
         }
         
+        // Get token contract
+        let token_address: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("TOKEN"))
+            .expect("Contract not initialized");
+        
+        let token = token::Client::new(&env, &token_address);
+        
+        // Transfer full amount back to owner
+        token.transfer(&env.current_contract_address(), &vault.owner, &vault.amount);
+        
         // Mark as inactive
         vault.is_active = false;
         env.storage().instance().set(&vault_id, &vault);
@@ -135,11 +173,32 @@ impl VaultContract {
         let penalty = (vault.amount * penalty_percent as i128) / 100;
         let amount_to_user = vault.amount - penalty;
         
+        // Get token contract
+        let token_address: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("TOKEN"))
+            .expect("Contract not initialized");
+        
+        let token = token::Client::new(&env, &token_address);
+        
+        // Get admin address to receive penalty
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("ADMIN"))
+            .expect("Contract not initialized");
+        
+        // Transfer amount minus penalty to user
+        token.transfer(&env.current_contract_address(), &vault.owner, &amount_to_user);
+        
+        // Transfer penalty to admin (in real implementation, would be a pool contract)
+        token.transfer(&env.current_contract_address(), &admin, &penalty);
+        
         // Mark as inactive
         vault.is_active = false;
         env.storage().instance().set(&vault_id, &vault);
         
-        // Return amounts (penalty would be sent to pool in real implementation)
         (amount_to_user, penalty)
     }
     

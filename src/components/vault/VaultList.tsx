@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import { VaultCard } from './VaultCard'
+import toast from 'react-hot-toast'
 import 'twin.macro'
-import * as StellarSdk from '@stellar/stellar-sdk'
+import { Client } from '@/contracts/src/index'
 
 interface Vault {
   id: number
@@ -14,107 +15,104 @@ interface Vault {
 }
 
 export const VaultList = () => {
-  const { address, server } = useSorobanReact()
+  const { address } = useSorobanReact()
   const [vaults, setVaults] = useState<Vault[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const loadVaults = async () => {
-    if (!address || !server) return
+    if (!address) return
 
     try {
-      setIsLoading(true)
-      setError(null)
-
-      // This is a placeholder - actual implementation will query the contract
-      // For now, we'll show instructions for when contract is deployed
+      setLoading(true)
       
-      // const contractAddress = 'CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-      // const contract = new StellarSdk.Contract(contractAddress)
-      
-      // 1. Get vault count
-      // 2. Query each vault
-      // 3. Filter vaults owned by connected address
-      // 4. Update state
+      const client = new Client({
+        publicKey: address,
+        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
+        networkPassphrase: 'Test SDF Network ; September 2015',
+        rpcUrl: 'https://soroban-testnet.stellar.org'
+      })
 
-      // Placeholder: Show empty state
-      setVaults([])
-    } catch (err: any) {
-      console.error('Error loading vaults:', err)
-      setError(err?.message || 'Failed to load vaults')
+      // Get total vault count
+      const countTx = await client.get_vault_count()
+      const count = Number(countTx.result)
+
+      if (count === 0) {
+        setVaults([])
+        return
+      }
+
+      // Fetch all vaults and filter by owner
+      const userVaults: Vault[] = []
+      for (let i = 1; i <= count; i++) {
+        try {
+          const vaultTx = await client.get_vault({ vault_id: BigInt(i) })
+          const vaultData = vaultTx.result
+          
+          if (vaultData && vaultData.owner === address) {
+            userVaults.push({
+              id: i,
+              owner: vaultData.owner,
+              amount: vaultData.amount,
+              unlockTime: Number(vaultData.unlock_time),
+              createdAt: Number(vaultData.created_at),
+              isActive: vaultData.is_active
+            })
+          }
+        } catch (err) {
+          // Vault doesn't exist or error, skip
+          console.log(`Vault ${i} not found or error`)
+        }
+      }
+
+      setVaults(userVaults)
+    } catch (error: any) {
+      console.error('Error loading vaults:', error)
+      toast.error('Failed to load vaults')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadVaults()
-  }, [address, server])
-
-  if (!address) {
-    return (
-      <div tw="bg-gray-800 rounded-lg p-6 text-center max-w-2xl w-full">
-        <p tw="text-gray-400">Connect your wallet to view your vaults</p>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div tw="bg-gray-800 rounded-lg p-6 text-center max-w-2xl w-full">
-        <div tw="animate-pulse">
-          <div tw="h-4 bg-gray-700 rounded w-1/2 mx-auto mb-4"></div>
-          <div tw="h-4 bg-gray-700 rounded w-3/4 mx-auto"></div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div tw="bg-gray-800 rounded-lg p-6 text-center max-w-2xl w-full">
-        <p tw="text-red-400 mb-2">Error loading vaults</p>
-        <p tw="text-sm text-gray-400">{error}</p>
-        <button
-          onClick={loadVaults}
-          tw="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
+    void loadVaults()
+  }, [address])
 
   return (
-    <div tw="w-full max-w-2xl">
-      <div tw="flex justify-between items-center mb-4">
-        <h2 tw="text-2xl font-bold">Your Vaults</h2>
+    <div tw="w-full max-w-6xl mx-auto">
+      <div tw="flex justify-between items-center mb-6">
+        <h2 tw="text-3xl font-bold">Your Vaults</h2>
         <button
-          onClick={loadVaults}
-          tw="text-sm text-gray-400 hover:text-white transition-colors"
+          onClick={() => void loadVaults()}
+          disabled={loading || !address}
+          tw="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
         >
-          Refresh
+          {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
 
-      {vaults.length === 0 ? (
+      {!address ? (
         <div tw="bg-gray-800 rounded-lg p-8 text-center">
-          <p tw="text-gray-400 mb-2">No vaults yet</p>
-          <p tw="text-sm text-gray-500">
+          <p tw="text-gray-400">Connect your wallet to view your vaults</p>
+        </div>
+      ) : loading ? (
+        <div tw="bg-gray-800 rounded-lg p-8 text-center">
+          <p tw="text-gray-400">Loading your vaults...</p>
+        </div>
+      ) : vaults.length === 0 ? (
+        <div tw="bg-gray-800 rounded-lg p-8">
+          <p tw="text-gray-400 text-center mb-4">No vaults yet</p>
+          <p tw="text-sm text-gray-500 text-center">
             Create your first savings vault to get started
           </p>
-          <div tw="mt-4 p-4 bg-gray-700 rounded-lg text-left">
-            <p tw="text-xs text-gray-400 mb-2">Note: Contract integration pending</p>
-            <p tw="text-xs text-gray-500">
-              Once the Vault contract is deployed to testnet, this section will display
-              your active vaults with real-time data.
-            </p>
-          </div>
         </div>
       ) : (
-        <div tw="grid gap-4 md:grid-cols-2">
+        <div tw="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vaults.map((vault) => (
-            <VaultCard key={vault.id} vault={vault} onUpdate={loadVaults} />
+            <VaultCard
+              key={vault.id}
+              vault={vault}
+              onUpdate={() => void loadVaults()}
+            />
           ))}
         </div>
       )}

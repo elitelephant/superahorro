@@ -15,7 +15,7 @@ export default function MySorobanReactProvider({children}:{children: React.React
     return (
       <SorobanReactProvider
         chains={chains}
-        appName={"Example Stellar App"}
+        appName={"SuperAhorro - Savings Vault"}
         activeChain={testnet}
         connectors={connectors}
         deployments={deployments}>

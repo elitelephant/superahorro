@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
-import { contractTxWithToast } from '@/utils/contractTxWithToast'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import * as StellarSdk from '@stellar/stellar-sdk'
+import { Client } from '@/contracts/src/index'
+import { rpc } from '@/contracts/src/index'
 
 export const VaultForm = () => {
-  const { address, activeChain, server } = useSorobanReact()
+  const { address, server, connectors } = useSorobanReact()
   const [amount, setAmount] = useState('')
   const [lockDays, setLockDays] = useState('30')
   const [isLoading, setIsLoading] = useState(false)
@@ -31,32 +31,44 @@ export const VaultForm = () => {
     try {
       setIsLoading(true)
       
-      // Convert USDC to stroops (7 decimals)
-      const amountInStroops = Math.floor(parseFloat(amount) * 10_000_000)
+      // Convert XLM to stroops (7 decimals)
+      const amountInStroops = BigInt(Math.floor(parseFloat(amount) * 10_000_000))
       
-      // Get contract address from deployments
-      const contractAddress = 'CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // Will be updated after deployment
-      
-      // Build transaction
-      const contract = new StellarSdk.Contract(contractAddress)
-      const account = await server.getAccount(address)
-      
-      const tx = new StellarSdk.TransactionBuilder(account, {
-        fee: StellarSdk.BASE_FEE,
-        networkPassphrase: activeChain?.networkPassphrase || '',
+      const client = new Client({
+        publicKey: address,
+        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
+        networkPassphrase: 'Test SDF Network ; September 2015',
+        rpcUrl: 'https://soroban-testnet.stellar.org'
       })
-        .addOperation(
-          contract.call(
-            'create_vault',
-            StellarSdk.Address.fromString(address).toScVal(),
-            StellarSdk.nativeToScVal(amountInStroops, { type: 'i128' }),
-            StellarSdk.nativeToScVal(days, { type: 'u64' })
-          )
-        )
-        .setTimeout(30)
-        .build()
-
-      await contractTxWithToast(address, tx, server, 'Creating vault...')
+      
+      toast.loading('Preparing transaction...')
+      
+      // Build transaction using generated client
+      const tx = await client.create_vault({
+        owner: address,
+        amount: amountInStroops,
+        lock_duration_days: BigInt(days)
+      })
+      
+      // Get connector to sign
+      const connector = connectors?.[0]
+      if (!connector) {
+        throw new Error('No wallet connector found')
+      }
+      
+      toast.loading('Please sign in Freighter...')
+      
+      // Sign and send
+      const result = await tx.signAndSend({
+        signTransaction: async (xdr: string) => {
+          const signedXdr = await connector.signTransaction(xdr, {
+            networkPassphrase: 'Test SDF Network ; September 2015'
+          })
+          return {
+            signedTxXdr: signedXdr
+          }
+        }
+      })
       
       toast.success('Vault created successfully!')
       setAmount('')
@@ -76,7 +88,7 @@ export const VaultForm = () => {
       <div tw="space-y-4">
         <div>
           <label tw="block text-sm font-medium text-gray-300 mb-2">
-            Amount (USDC)
+            Amount (XLM)
           </label>
           <input
             type="number"

@@ -7,7 +7,7 @@ A time-locked savings platform built on Stellar's Soroban smart contracts, desig
 - **Time-Locked Vaults**: Create savings vaults with customizable lock periods (7-365 days)
 - **Early Withdrawal Penalties**: 5-10% penalty redirected to community rewards pool
 - **Social Penalty Pool**: Disciplined savers earn rewards from early withdrawals
-- **USDC Native**: Stable savings using Circle's USDC on Stellar
+- **XLM Native**: Save using Stellar's native XLM token
 - **Ultra-Low Fees**: ~0.0001 XLM per transaction
 - **Mobile-First**: Responsive UI for global access
 

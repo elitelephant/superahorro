@@ -52,14 +52,20 @@ async function submitTransaction(
 }
 
 async function signTransactionWithFreighter(xdr: string): Promise<string> {
-  if (typeof window === 'undefined' || !(window as any).freighter) {
-    throw new Error('Freighter wallet not found')
+  if (typeof window === 'undefined') {
+    throw new Error('Window is not defined')
   }
+
+  // Check if Freighter is installed
+  const isFreighterInstalled = await (window as any).freighterApi?.isConnected()
   
-  const freighter = (window as any).freighter
-  const { signTransaction } = freighter
-  
-  const signedXdr = await signTransaction(xdr, {
+  if (!isFreighterInstalled) {
+    throw new Error('Freighter wallet not found. Please install Freighter extension.')
+  }
+
+  // Sign with Freighter API
+  const signedXdr = await (window as any).freighterApi.signTransaction(xdr, {
+    network: 'TESTNET',
     networkPassphrase: StellarSdk.Networks.TESTNET,
   })
   

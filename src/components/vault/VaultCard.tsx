@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
-import { contractTxWithToast } from '@/utils/contractTxWithToast'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import * as StellarSdk from '@stellar/stellar-sdk'
+import { Client } from '@/contracts/src/index'
 
 interface Vault {
   id: number
@@ -23,7 +22,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
   const { address, activeChain, server } = useSorobanReact()
   const [isLoading, setIsLoading] = useState(false)
   const [showEarlyWithdraw, setShowEarlyWithdraw] = useState(false)
-  const [penaltyPercent, setPenaltyPercent] = useState('5')
+  const FIXED_PENALTY = 7
 
   const now = Math.floor(Date.now() / 1000)
   const isUnlocked = now >= vault.unlockTime
@@ -59,29 +58,42 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
     try {
       setIsLoading(true)
       
-      const contractAddress = 'CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-      const contract = new StellarSdk.Contract(contractAddress)
-      const account = await server.getAccount(address)
-      
-      const tx = new StellarSdk.TransactionBuilder(account, {
-        fee: StellarSdk.BASE_FEE,
+      const contractAddress = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
+      const client = new Client({
+        contractId: contractAddress,
         networkPassphrase: activeChain?.networkPassphrase || '',
+        rpcUrl: server.serverURL.toString(),
       })
-        .addOperation(
-          contract.call(
-            'withdraw',
-            StellarSdk.nativeToScVal(vault.id, { type: 'u64' })
-          )
-        )
-        .setTimeout(30)
-        .build()
 
-      await contractTxWithToast(address, tx, server, 'Withdrawing funds...')
+      const tx = await client.withdraw({
+        vault_id: BigInt(vault.id),
+      })
+
+      const connector = (window as any).freighterApi
       
+      if (!connector) {
+        throw new Error('Freighter wallet not found')
+      }
+
+      toast.loading('Sign transaction in Freighter...')
+
+      await tx.signAndSend({
+        signTransaction: async (xdr: string) => {
+          const signedXdr = await connector.signTransaction(xdr, {
+            networkPassphrase: activeChain?.networkPassphrase || ''
+          })
+          return {
+            signedTxXdr: signedXdr
+          }
+        }
+      })
+      
+      toast.dismiss()
       toast.success('Withdrawal successful!')
       onUpdate?.()
     } catch (error: any) {
       console.error('Error withdrawing:', error)
+      toast.dismiss()
       toast.error(error?.message || 'Failed to withdraw')
     } finally {
       setIsLoading(false)
@@ -94,39 +106,46 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       return
     }
 
-    const penalty = parseInt(penaltyPercent)
-    if (penalty < 5 || penalty > 10) {
-      toast.error('Penalty must be between 5% and 10%')
-      return
-    }
-
     try {
       setIsLoading(true)
       
-      const contractAddress = 'CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-      const contract = new StellarSdk.Contract(contractAddress)
-      const account = await server.getAccount(address)
-      
-      const tx = new StellarSdk.TransactionBuilder(account, {
-        fee: StellarSdk.BASE_FEE,
+      const contractAddress = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
+      const client = new Client({
+        contractId: contractAddress,
         networkPassphrase: activeChain?.networkPassphrase || '',
+        rpcUrl: server.serverURL.toString(),
       })
-        .addOperation(
-          contract.call(
-            'early_withdraw',
-            StellarSdk.nativeToScVal(vault.id, { type: 'u64' }),
-            StellarSdk.nativeToScVal(penalty, { type: 'u32' })
-          )
-        )
-        .setTimeout(30)
-        .build()
 
-      await contractTxWithToast(address, tx, server, 'Processing early withdrawal...')
+      const tx = await client.early_withdraw({
+        vault_id: BigInt(vault.id),
+        penalty_percent: FIXED_PENALTY,
+      })
+
+      const connector = (window as any).freighterApi
       
-      toast.success(`Early withdrawal completed with ${penalty}% penalty`)
+      if (!connector) {
+        throw new Error('Freighter wallet not found')
+      }
+
+      toast.loading('Sign transaction in Freighter...')
+
+      await tx.signAndSend({
+        signTransaction: async (xdr: string) => {
+          const signedXdr = await connector.signTransaction(xdr, {
+            networkPassphrase: activeChain?.networkPassphrase || ''
+          })
+          return {
+            signedTxXdr: signedXdr
+          }
+        }
+      })
+      
+      toast.dismiss()
+      toast.success(`Early withdrawal completed with ${FIXED_PENALTY}% penalty`)
       onUpdate?.()
     } catch (error: any) {
       console.error('Error with early withdrawal:', error)
+      toast.dismiss()
       toast.error(error?.message || 'Failed to process early withdrawal')
     } finally {
       setIsLoading(false)
@@ -141,7 +160,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
           <span tw="text-sm font-medium text-gray-400">Vault #{vault.id}</span>
           <span tw="text-xs bg-gray-700 px-2 py-1 rounded">Withdrawn</span>
         </div>
-        <div tw="text-lg font-bold text-gray-500">{formatAmount(vault.amount)} USDC</div>
+        <div tw="text-lg font-bold text-gray-500">{formatAmount(vault.amount)} XLM</div>
         <div tw="text-sm text-gray-500 mt-1">Completed</div>
       </div>
     )
@@ -163,7 +182,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
       </div>
 
       <div tw="text-2xl font-bold text-white mb-1">
-        {formatAmount(vault.amount)} USDC
+        {formatAmount(vault.amount)} XLM
       </div>
 
       <div tw="text-sm text-gray-400 space-y-1">
@@ -191,25 +210,14 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
                 disabled={isLoading}
                 tw="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
               >
-                Early Withdraw (with penalty)
+                Early Withdraw (7% penalty)
               </button>
             ) : (
               <div tw="space-y-2">
-                <div>
-                  <label tw="block text-xs text-gray-400 mb-1">Penalty %</label>
-                  <select
-                    value={penaltyPercent}
-                    onChange={(e) => setPenaltyPercent(e.target.value)}
-                    disabled={isLoading}
-                    tw="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
-                  >
-                    <option value="5">5% (Keep 95%)</option>
-                    <option value="6">6% (Keep 94%)</option>
-                    <option value="7">7% (Keep 93%)</option>
-                    <option value="8">8% (Keep 92%)</option>
-                    <option value="9">9% (Keep 91%)</option>
-                    <option value="10">10% (Keep 90%)</option>
-                  </select>
+                <div tw="text-sm text-gray-300 mb-2">
+                  Early withdrawal will deduct a 7% penalty.
+                  <br />
+                  You'll receive: {formatAmount(BigInt(Math.floor(Number(vault.amount) * 0.93)))} XLM
                 </div>
                 <div tw="flex gap-2">
                   <button
@@ -217,7 +225,7 @@ export const VaultCard = ({ vault, onUpdate }: VaultCardProps) => {
                     disabled={isLoading}
                     tw="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
                   >
-                    {isLoading ? 'Processing...' : 'Confirm'}
+                    {isLoading ? 'Processing...' : 'Confirm 7% Penalty'}
                   </button>
                   <button
                     onClick={() => setShowEarlyWithdraw(false)}
