@@ -96,9 +96,7 @@ export const VaultForm = () => {
           const signedXdr = await connector.signTransaction(xdr, {
             networkPassphrase: 'Test SDF Network ; September 2015'
           })
-          return {
-            signedTxXdr: signedXdr
-          }
+          return signedXdr as any
         }
       })
       
