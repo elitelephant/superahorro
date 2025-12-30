@@ -3,7 +3,7 @@ import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
 import { Client } from '@/contracts/src/index'
-import { rpc } from '@/contracts/src/index'
+import { rpc, Address } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
 export const VaultForm = () => {
@@ -143,6 +143,11 @@ export const VaultForm = () => {
   return (
     <Card variant="outline" p={6} bgColor="whiteAlpha.100" maxW="md" w="full">
       <h2 tw="text-xl font-bold mb-4 text-center">Create Savings Vault</h2>
+      
+      <div tw="mb-3 p-2 bg-gray-900/50 border border-gray-700 rounded text-xs">
+        <div tw="text-gray-400 mb-1">Contract Address:</div>
+        <div tw="font-mono text-gray-300 break-all">CDPK7X...TCZD2</div>
+      </div>
       
       {address && (
         <div tw="mb-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
