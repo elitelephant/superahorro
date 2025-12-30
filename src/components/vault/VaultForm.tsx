@@ -66,6 +66,8 @@ export const VaultForm = () => {
       // Convert XLM to stroops (7 decimals)
       const amountInStroops = BigInt(Math.floor(parseFloat(amount) * 10_000_000))
       
+      console.log('Creating vault with:', { address, amountInStroops: amountInStroops.toString(), days })
+      
       const client = new Client({
         publicKey: address,
         contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
