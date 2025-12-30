@@ -3,6 +3,10 @@ node_modules/
 .pnp
 .pnp.js
 
+# Temporary files
+temp_*.ts
+temp_*
+
 # Testing
 coverage/
 
