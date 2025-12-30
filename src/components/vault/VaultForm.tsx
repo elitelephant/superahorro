@@ -3,7 +3,7 @@ import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
 import { Client } from '@/contracts/src/index'
-import { rpc, Address } from '@/contracts/src/index'
+import { rpc } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
 export const VaultForm = () => {
@@ -12,13 +12,6 @@ export const VaultForm = () => {
   const [lockDays, setLockDays] = useState('30')
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<string>('0')
-  
-  const CONTRACT_ID = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
-  
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(CONTRACT_ID)
-    toast.success('Contract address copied!')
-  }
 
   // Fetch balance when address changes
   useEffect(() => {
@@ -73,11 +66,9 @@ export const VaultForm = () => {
       // Convert XLM to stroops (7 decimals)
       const amountInStroops = BigInt(Math.floor(parseFloat(amount) * 10_000_000))
       
-      console.log('Creating vault with:', { address, amountInStroops: amountInStroops.toString(), days })
-      
       const client = new Client({
         publicKey: address,
-        contractId: CONTRACT_ID,
+        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
         networkPassphrase: 'Test SDF Network ; September 2015',
         rpcUrl: 'https://soroban-testnet.stellar.org'
       })
@@ -105,7 +96,9 @@ export const VaultForm = () => {
           const signedXdr = await connector.signTransaction(xdr, {
             networkPassphrase: 'Test SDF Network ; September 2015'
           })
-          return signedXdr as any
+          return {
+            signedTxXdr: signedXdr
+          }
         }
       })
       
@@ -150,19 +143,6 @@ export const VaultForm = () => {
   return (
     <Card variant="outline" p={6} bgColor="whiteAlpha.100" maxW="md" w="full">
       <h2 tw="text-xl font-bold mb-4 text-center">Create Savings Vault</h2>
-      
-      <div tw="mb-3 p-3 bg-gray-900/50 border border-gray-700 rounded">
-        <div tw="flex items-center justify-between mb-2">
-          <div tw="text-xs text-gray-400">Contract Address:</div>
-          <button
-            onClick={copyToClipboard}
-            tw="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-          >
-            Copy
-          </button>
-        </div>
-        <div tw="font-mono text-xs text-gray-300 break-all">{CONTRACT_ID}</div>
-      </div>
       
       {address && (
         <div tw="mb-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
