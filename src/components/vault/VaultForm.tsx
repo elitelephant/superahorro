@@ -12,6 +12,13 @@ export const VaultForm = () => {
   const [lockDays, setLockDays] = useState('30')
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<string>('0')
+  
+  const CONTRACT_ID = 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2'
+  
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(CONTRACT_ID)
+    toast.success('Contract address copied!')
+  }
 
   // Fetch balance when address changes
   useEffect(() => {
@@ -70,7 +77,7 @@ export const VaultForm = () => {
       
       const client = new Client({
         publicKey: address,
-        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
+        contractId: CONTRACT_ID,
         networkPassphrase: 'Test SDF Network ; September 2015',
         rpcUrl: 'https://soroban-testnet.stellar.org'
       })
@@ -144,9 +151,17 @@ export const VaultForm = () => {
     <Card variant="outline" p={6} bgColor="whiteAlpha.100" maxW="md" w="full">
       <h2 tw="text-xl font-bold mb-4 text-center">Create Savings Vault</h2>
       
-      <div tw="mb-3 p-2 bg-gray-900/50 border border-gray-700 rounded text-xs">
-        <div tw="text-gray-400 mb-1">Contract Address:</div>
-        <div tw="font-mono text-gray-300 break-all">CDPK7X...TCZD2</div>
+      <div tw="mb-3 p-3 bg-gray-900/50 border border-gray-700 rounded">
+        <div tw="flex items-center justify-between mb-2">
+          <div tw="text-xs text-gray-400">Contract Address:</div>
+          <button
+            onClick={copyToClipboard}
+            tw="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+          >
+            Copy
+          </button>
+        </div>
+        <div tw="font-mono text-xs text-gray-300 break-all">{CONTRACT_ID}</div>
       </div>
       
       {address && (
