@@ -146,9 +146,45 @@ export const VaultForm = () => {
       console.log('✅ Min resource fee:', simulationResult.minResourceFee)
       console.log('✅ Auth entries:', simulationResult.results?.[0]?.auth)
       
-      // Use assembleTransaction to properly combine the simulation results
-      // This handles soroban data, auth entries, and fees automatically
-      const assembledTx = rpc.assembleTransaction(builtTx, simulationResult).build()
+      // Manually assemble the transaction with simulation results
+      // Parse the soroban transaction data
+      const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
+      
+      // Get the operation from the original transaction
+      const originalOp = builtTx.operations[0] as Operation.InvokeHostFunction
+      
+      // Calculate total fee (base + resources)
+      const minResourceFee = parseInt(simulationResult.minResourceFee || '0')
+      const totalFee = (parseInt(BASE_FEE) + minResourceFee).toString()
+      
+      // Rebuild transaction with simulation data
+      let txBuilder = new TransactionBuilder(sourceAccount, {
+        fee: totalFee,
+        networkPassphrase: NETWORK_PASSPHRASE
+      })
+      
+      // Add the operation with auth entries if present
+      if (simulationResult.results?.[0]?.auth && simulationResult.results[0].auth.length > 0) {
+        // Parse auth entries
+        const authEntries = simulationResult.results[0].auth.map((authStr: string) => 
+          xdr.SorobanAuthorizationEntry.fromXDR(authStr, 'base64')
+        )
+        
+        txBuilder = txBuilder.addOperation(
+          Operation.invokeHostFunction({
+            func: originalOp.func,
+            auth: authEntries
+          })
+        )
+      } else {
+        txBuilder = txBuilder.addOperation(operation)
+      }
+      
+      // Build with soroban data
+      const assembledTx = txBuilder
+        .setTimeout(30)
+        .setSorobanData(sorobanData)
+        .build()
       
       console.log('✅ Assembled transaction ready')
       

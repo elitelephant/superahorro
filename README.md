@@ -1,202 +1,231 @@
-# SuperAhorro - Decentralized Savings Platform
+# SuperAhorro
 
-A time-locked savings platform built on Stellar's Soroban smart contracts, designed for financial inclusion and disciplined saving habits.
+> Una herramienta simple para mantener el plan financiero que tú mismo definiste.
 
-## 🎯 Status
+## El Problema
 
-**✅ FULLY FUNCTIONAL** - Deployed and working on Stellar Testnet
+Muchas personas compran cripto con la intención de holdear a largo plazo, pero terminan desviándose de su plan original. En la mayoría de los casos, no es un problema de información ni de convicción, sino de **disciplina**. Mantener un plan financiero en el tiempo resulta difícil cuando las decisiones dependen únicamente de la fuerza de voluntad.
 
-### Live Contract
+## La Solución
+
+SuperAhorro es una herramienta de ahorro simple basada en **reglas predefinidas**. A través de una interfaz web, puedes crear bóvedas con una duración definida y una penalización fija por retiro anticipado.
+
+Una vez creada la bóveda, sus reglas no pueden modificarse. La disciplina no depende de tu fuerza de voluntad ni de un intermediario, sino de reglas programadas que se cumplen automáticamente.
+
+Actualmente, las bóvedas permiten proteger **Lumens (XLM)**, con la intención de extenderse a otros activos dentro del ecosistema.
+
+## Estado del Proyecto
+
+### 🟢 En Testnet - Funcionando
+
+El contrato está desplegado y operativo en Stellar Testnet:
+
 - **Contract ID**: `CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2`
-- **Network**: Test SDF Network (Stellar Testnet)
-- **Explorer**: [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2)
+- **Red**: Test SDF Network (Stellar Testnet)
+- **Explorador**: [Ver en Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2)
 
-### ✅ Working Features
-- ✅ Vault creation with custom lock periods (7-365 days)
-- ✅ Real-time XLM balance display
-- ✅ List all user vaults with live data
-- ✅ Early withdrawals with 7% penalty
-- ✅ Freighter wallet integration
-- ✅ Production-ready builds (dev & prod tested)
-- ✅ Mobile-responsive UI
+### ✅ Lo Que Funciona Bien
 
-### 🛠️ Built With
+**En Producción (Testnet):**
+- ✅ Crear bóvedas con períodos de bloqueo personalizados (7-365 días)
+- ✅ Mostrar el balance de XLM en tiempo real
+- ✅ Listar todas las bóvedas del usuario con datos actualizados
+- ✅ Retiros anticipados con penalización del 7%
+- ✅ Integración con la wallet Freighter
+- ✅ Interfaz responsive que funciona en móvil
 
-**Core Technologies:**
-- [Stellar Soroban](https://stellar.org/soroban) - Smart contract platform
-- [Soroban React Boilerplate](https://github.com/paltalabs/soroban-react-boilerplate) by PaltaLabs - Base project structure
-- Next.js 14 + TypeScript
-- Chakra UI + twin.macro
-- @soroban-react ecosystem
+**En Desarrollo:**
+- ✅ El contrato se compila y despliega sin problemas
+- ✅ Los tests unitarios del contrato pasan correctamente
+- ✅ La generación de bindings de TypeScript funciona
+- ✅ El servidor de desarrollo levanta rápido
+- ✅ Hot reload funciona bien para cambios en el frontend
 
-**From Boilerplate:**
-- MySorobanReactProvider (wallet context)
-- ConnectButton (Freighter integration) 
-- ChainInfo component
-- Project structure & configuration
+### 🟡 Lo Que Necesita Mejorar
 
-**Custom Built:**
-- Vault smart contract (Rust/Soroban)
-- All vault UI components (VaultForm, VaultList, VaultCard)
-- TypeScript bindings generation
-- Contract interaction logic
+**En Producción:**
+- ⚠️ Los retiros normales (después del período de bloqueo) funcionan, pero no están completamente validados con pruebas reales de 7+ días
+- ⚠️ No hay historial de transacciones, tienes que recordar qué hiciste
+- ⚠️ Los mensajes de error podrían ser más claros y específicos
+- ⚠️ La interfaz está solo en inglés (esto es lo siguiente en la lista)
+- ⚠️ No hay confirmación visual cuando una transacción está en proceso
 
-## 🏗️ Project Structure
+**En Desarrollo:**
+- ⚠️ El tiempo de compilación del contrato Rust es un poco largo (~30-60 segundos)
+- ⚠️ La sincronización entre el contrato y los bindings de TypeScript requiere compilar manualmente
+- ⚠️ No hay tests de integración automatizados (solo pruebas manuales por ahora)
+- ⚠️ El setup inicial requiere instalar Stellar CLI y configurar todo manualmente
 
-```
-superahorro/
-├── contracts/vault/          # Soroban smart contract (Rust)
-│   └── src/lib.rs           # Main contract logic
-├── src/
-│   ├── components/vault/    # UI components
-│   │   ├── VaultForm.tsx    # Create vaults + balance display
-│   │   ├── VaultList.tsx    # List user vaults
-│   │   └── VaultCard.tsx    # Vault details & withdrawals
-│   └── contracts/src/       # Generated TypeScript bindings
-└── vercel.json              # Deployment configuration
-```
+### ❌ Lo Que Falta
 
-### Installation
+- ❌ Auditoría de seguridad profesional
+- ❌ Despliegue en mainnet (esperando validación y auditoría)
+- ❌ Bóvedas con múltiples activos
+- ❌ Condiciones basadas en precio u otras variables
+- ❌ Sistema de distribución colectiva de las penalizaciones
+- ❌ Analytics y dashboard de estadísticas
+- ❌ Aplicación móvil nativa
+
+## Por Qué Stellar
+
+Stellar está diseñada para el uso financiero cotidiano. Su ecosistema ya gira en torno a pagos, ahorro y estabilidad, lo que la convierte en una red especialmente adecuada para una aplicación de finanzas descentralizadas simple y de bajo riesgo como SuperAhorro.
+
+Dentro del ecosistema, aún existen pocas herramientas enfocadas específicamente en el ahorro y la disciplina financiera. **SuperAhorro busca ocupar ese espacio**.
+
+## Cómo Empezar
+
+### Instalación
 
 ```bash
-# Clone repository
+# Clonar el repositorio
 git clone https://github.com/elitelephant/superahorro.git
 cd superahorro
 
-# Install frontend dependencies
+# Instalar dependencias del frontend
 npm install
 
-# Build smart contracts
+# Compilar el contrato (requiere Stellar CLI)
 cd contracts/vault
 stellar contract build
 ```
 
-### Development
+### Desarrollo Local
 
 ```bash
-# Start frontend dev server
+# Iniciar el servidor de desarrollo
 npm run dev
-# Open http://localhost:3000
-
-# Build for production
-npm run build
+# Abre http://localhost:3000 en tu navegador
 ```
 
-## 🧪 Testing Guide
-
-### Complete Testing Checklist
-See [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) for the full manual testing guide covering:
-- Wallet connection
-- Vault creation
-- Vault listing
-- Normal withdrawals
-- Early withdrawals with penalty
-- Edge cases
-
-### Testing Approach
-
-Contract functionality has been verified through:
-1. ✅ Successful deployment to testnet
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Clone & install
-git clone https://github.com/yourusername/superahorro.git
-cd superahorro
-npm install
-```
-
-### Development
-
-```bash
-# Start dev server
-npm run dev
-# Open http://localhost:3000
-```
-
-### Production Build
+### Compilar para Producción
 
 ```bash
 npm run build
 npm start
 ```
 
-## 📝 Smart Contract API
+## Estructura del Proyecto
 
-**Contract**: `CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2`  
-**Network**: Test SDF Network (Stellar Testnet)  
-**Token**: XLM Native
+```
+superahorro/
+├── contracts/vault/          # Contrato inteligente en Soroban (Rust)
+│   ├── src/lib.rs           # Lógica principal del contrato
+│   └── test_snapshots/      # Resultados de los tests
+├── src/
+│   ├── components/vault/    # Componentes de UI para bóvedas
+│   │   ├── VaultForm.tsx    # Formulario de creación + balance
+│   │   ├── VaultList.tsx    # Lista de bóvedas del usuario
+│   │   └── VaultCard.tsx    # Detalle y acciones de cada bóveda
+│   ├── components/web3/     # Integración con wallet
+│   └── contracts/src/       # Bindings generados de TypeScript
+└── public/                  # Recursos estáticos
+```
 
-### Key Functions
+## API del Contrato
+
+### Funciones Principales
 
 **`create_vault(owner, amount, lock_duration_days) -> u64`**
-- Creates time-locked vault (7-365 days)
-- Amount in stroops (1 XLM = 10^7 stroops)
-- Returns vault ID
+- Crea una bóveda bloqueada por tiempo (7-365 días)
+- El monto se especifica en stroops (1 XLM = 10,000,000 stroops)
+- Devuelve el ID de la bóveda creada
 
 **`withdraw(vault_id)`**
-- Withdraw after unlock period expires
-- Returns full amount to owner
+- Retira fondos después de que expire el período de bloqueo
+- Devuelve el monto completo al propietario
 
 **`early_withdraw(vault_id)`**
-- Withdraw before unlock (7% penalty to admin)
-- Returns 93% to owner
+- Retira antes del período establecido
+- Aplica una penalización del 7% (va al administrador)
+- Devuelve el 93% del monto al propietario
 
 **`get_vault(vault_id) -> Vault`**
-- Fetch vault details
+- Obtiene los detalles de una bóveda específica
 
 **`get_vault_count() -> u64`**
-- Total vaults created
+- Devuelve el total de bóvedas creadas
 
-## 🛠️ Tech Stack
+## Stack Técnico
 
-- **Blockchain**: Stellar Soroban (Rust)
+- **Blockchain**: Stellar Soroban (contratos en Rust)
 - **Frontend**: Next.js 14 + TypeScript
-- **UI**: Chakra UI + twin.macro
-- **Wallet**: Freighter via @soroban-react
-- **Deployment**: Vercel
+- **UI**: Chakra UI + twin.macro + Styled Components
+- **Wallet**: Freighter vía @soroban-react
+- **Despliegue**: Vercel
+- **Boilerplate Base**: [Soroban React Boilerplate](https://github.com/paltalabs/soroban-react-boilerplate) de PaltaLabs
 
-## 🔐 Security
+### Lo Que Construimos vs Lo Que Viene del Boilerplate
 
-- Funds locked in auditable Soroban contracts
-- No admin access to user funds
-- Open source and verifiable on-chain
-- Testnet-first development
+**Del Boilerplate (gracias PaltaLabs):**
+- Estructura base del proyecto
+- MySorobanReactProvider (contexto de wallet)
+- ConnectButton (integración con Freighter)
+- ChainInfo component
+- Configuración de Next.js y TypeScript
 
-## 📊 Roadmap
+**Construido desde cero:**
+- Todo el contrato de bóvedas en Rust/Soroban
+- Todos los componentes de UI para bóvedas
+- Lógica de interacción con el contrato
+- Generación de bindings de TypeScript
 
-### ✅ Phase 1 - MVP (COMPLETE)
-- Vault contract with time locks
-- Web UI with wallet integration
-- Real-time balance & error feedback
-- Early withdrawals with penalties
-- Testnet deployment
+## Visión a Futuro
 
-### 🔄 Phase 2 - Enhancement (IN PROGRESS)
-- Normal withdrawal testing (after 7-day lock)
-- Transaction history
-- Multi-language (ES/EN)
+La visión detrás de SuperAhorro va más allá de una simple bóveda bloqueada por tiempo. El objetivo es explorar:
 
-### 🎯 Phase 3 - Production
-- Security audit
-- Mainnet deployment
-- Mobile app
-- Analytics dashboard
+- **Bóvedas multi-activo**: No solo XLM, sino también otros tokens del ecosistema Stellar
+- **Condiciones dinámicas**: Bóvedas que se desbloqueen no solo por tiempo, sino por precio u otras condiciones
+- **Dimensión colectiva**: Las penalizaciones podrían alimentar una bóveda común que se distribuya bajo ciertas condiciones, incorporando un aspecto social sin perder la lógica individual
 
-## 🤝 Contributing
+## Seguridad
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Test your changes thoroughly
-4. Submit a pull request with clear description
+⚠️ **Importante**: SuperAhorro está actualmente en **testnet** y no ha sido auditado profesionalmente. No uses fondos reales hasta que esté en mainnet con auditoría completa.
 
-## 📄 License
+**Principios de seguridad:**
+- Los fondos están bloqueados en contratos auditables públicamente
+- No hay acceso administrativo a los fondos de los usuarios
+- Código abierto y verificable en la blockchain
+- Desarrollo testnet-first
 
-MIT License - see [LICENSE](LICENSE) for details
+## Testing
+
+Consulta [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) para la guía completa de pruebas manuales que cubre:
+- Conexión de wallet
+- Creación de bóvedas
+- Listado de bóvedas
+- Retiros normales
+- Retiros anticipados con penalización
+- Casos extremos
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Si quieres ayudar:
+
+1. Haz un fork del repositorio
+2. Crea una rama para tu feature
+3. Prueba tus cambios exhaustivamente
+4. Envía un pull request con una descripción clara
+
+Áreas donde más necesitamos ayuda:
+- Tests automatizados de integración
+- Auditoría de seguridad
+- Mejoras en la UX/UI
+- Documentación en español
+- Soporte para más wallets
+
+## Cierre
+
+SuperAhorro no busca maximizar retornos ni ofrecer yields complejos. **Busca ayudar a las personas a cumplir el plan financiero que ellas mismas definieron**, confiando en reglas claras y simples en lugar de la fuerza de voluntad.
+
+Si eso resuena contigo, dale una oportunidad en testnet y comparte tu feedback.
+
+## Licencia
+
+MIT License - ver [LICENSE](LICENSE) para más detalles
+
+---
+
+Hecho con disciplina 💪 en Stellar
 
 ## 🔗 Links
 
