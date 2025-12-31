@@ -122,14 +122,14 @@ export const VaultForm = () => {
         networkPassphrase: 'Test SDF Network ; September 2015'
       })
       
-      // Convert XDR string to TransactionEnvelope using xdr module
-      const txEnvelope = xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
+      // Send directly - RPC accepts XDR string or Transaction object
+      // Create a minimal object that has toXDR method
+      const txToSend = {
+        toXDR: () => signedXdr,
+        toEnvelope: () => xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
+      }
       
-      // Create Transaction with the envelope
-      const signedTx = TransactionBuilder.fromXDR(txEnvelope, 'Test SDF Network ; September 2015')
-      
-      // Submit signed transaction
-      const sendResult = await rpcServer.sendTransaction(signedTx as any)
+      const sendResult = await rpcServer.sendTransaction(txToSend as any)
       
       // Wait for result
       if (sendResult.status === 'PENDING') {
