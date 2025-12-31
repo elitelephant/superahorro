@@ -83,9 +83,10 @@ export const VaultForm = () => {
       // Get source account
       const sourceAccount = await rpcServer.getAccount(address)
       
-      // Build parameters manually
+      // Build parameters manually - convert address to ScAddress
+      const ownerAddress = Address.fromString(address)
       const params = [
-        Address.fromString(address).toScVal(),  // owner
+        ownerAddress.toScVal(),  // owner as ScVal
         nativeToScVal(amountInStroops, { type: 'i128' }),  // amount
         nativeToScVal(BigInt(days), { type: 'u64' })  // lock_duration_days
       ]
@@ -117,16 +118,14 @@ export const VaultForm = () => {
       
       toast.loading('Please sign in Freighter...')
       
-      // Sign transaction
+      // Sign transaction  
       const signedXdr = await connector.signTransaction(preparedTx.toXDR(), {
         networkPassphrase: 'Test SDF Network ; September 2015'
       })
       
-      // Parse signed XDR back to Transaction
-      const signedTx = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015') as Transaction
-      
-      // Send transaction
-      const sendResult = await rpcServer.sendTransaction(signedTx)
+      // Submit signed transaction
+      const tx = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015')
+      const sendResult = await rpcServer.sendTransaction(tx)
       
       // Wait for result
       if (sendResult.status === 'PENDING') {
