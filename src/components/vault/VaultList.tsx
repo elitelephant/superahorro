@@ -76,70 +76,81 @@ export const VaultList = () => {
             
             if (sim?.result?.retval) {
               const resultXdr = sim.result.retval
-              console.log(`Vault ${i} raw XDR type:`, resultXdr.switch().name)
+              const xdrType = resultXdr.switch().name
+              console.log(`Vault ${i} raw XDR type:`, xdrType)
               
-              // Parse manually: result is Option<Vault> which is Vec with 0 or 1 elements
-              if (resultXdr.switch().name === 'scvVec') {
+              let vaultScVal = null
+              
+              // Parse manually: result can be Option<Vault> (Vec) or direct Map
+              if (xdrType === 'scvVec') {
+                // Option::Some is a Vec with 1 element
                 const vec = resultXdr.vec()
                 if (vec && vec.length > 0) {
-                  const vaultScVal = vec[0]
+                  vaultScVal = vec[0]
+                }
+              } else if (xdrType === 'scvMap') {
+                // Direct Map (Option is optimized away)
+                vaultScVal = resultXdr
+              }
+              
+              // Parse the vault Map
+              if (vaultScVal && vaultScVal.switch().name === 'scvMap') {
+                const vaultMap = vaultScVal.map()
+                const vaultData: any = {}
+                
+                // Parse each field
+                vaultMap.forEach((entry: any) => {
+                  const keyScVal = entry.key()
+                  const valScVal = entry.val()
                   
-                  // Vault is a Map
-                  if (vaultScVal.switch().name === 'scvMap') {
-                    const vaultMap = vaultScVal.map()
-                    const vaultData: any = {}
+                  // Key should be a Symbol
+                  if (keyScVal.switch().name === 'scvSymbol') {
+                    const key = keyScVal.sym().toString()
                     
-                    // Parse each field
-                    vaultMap.forEach((entry: any) => {
-                      const keyScVal = entry.key()
-                      const valScVal = entry.val()
-                      
-                      // Key should be a Symbol
-                      if (keyScVal.switch().name === 'scvSymbol') {
-                        const key = keyScVal.sym().toString()
-                        
-                        if (key === 'owner') {
-                          // owner is Address - convert to string
-                          if (valScVal.switch().name === 'scvAddress') {
-                            const addr = valScVal.address()
-                            // Convert Address to string (G... format)
-                            vaultData.owner = Address.fromScAddress(addr).toString()
-                          }
-                        } else if (key === 'amount') {
-                          // i128
-                          if (valScVal.switch().name === 'scvI128') {
-                            const i128Parts = valScVal.i128()
-                            vaultData.amount = BigInt(i128Parts.lo().toString())
-                          }
-                        } else if (key === 'unlock_time') {
-                          if (valScVal.switch().name === 'scvU64') {
-                            vaultData.unlock_time = valScVal.u64()
-                          }
-                        } else if (key === 'created_at') {
-                          if (valScVal.switch().name === 'scvU64') {
-                            vaultData.created_at = valScVal.u64()
-                          }
-                        } else if (key === 'is_active') {
-                          if (valScVal.switch().name === 'scvBool') {
-                            vaultData.is_active = valScVal.b()
-                          }
-                        }
+                    if (key === 'owner') {
+                      // owner is Address - convert to string
+                      if (valScVal.switch().name === 'scvAddress') {
+                        const addr = valScVal.address()
+                        // Convert Address to string (G... format)
+                        vaultData.owner = Address.fromScAddress(addr).toString()
                       }
-                    })
-                    
-                    // Check if this vault belongs to user
-                    if (vaultData.owner === address) {
-                      userVaults.push({
-                        id: i,
-                        owner: vaultData.owner,
-                        amount: vaultData.amount,
-                        unlockTime: Number(vaultData.unlock_time),
-                        createdAt: Number(vaultData.created_at),
-                        isActive: vaultData.is_active
-                      })
-                      console.log(`Vault ${i} manually parsed and added`)
+                    } else if (key === 'amount') {
+                      // i128
+                      if (valScVal.switch().name === 'scvI128') {
+                        const i128Parts = valScVal.i128()
+                        vaultData.amount = BigInt(i128Parts.lo().toString())
+                      }
+                    } else if (key === 'unlock_time') {
+                      if (valScVal.switch().name === 'scvU64') {
+                        vaultData.unlock_time = valScVal.u64()
+                      }
+                    } else if (key === 'created_at') {
+                      if (valScVal.switch().name === 'scvU64') {
+                        vaultData.created_at = valScVal.u64()
+                      }
+                    } else if (key === 'is_active') {
+                      if (valScVal.switch().name === 'scvBool') {
+                        vaultData.is_active = valScVal.b()
+                      }
                     }
                   }
+                })
+                
+                console.log(`Vault ${i} parsed data:`, vaultData)
+                
+                // Check if this vault belongs to user
+                if (vaultData.owner && vaultData.owner === address) {
+                  userVaults.push({
+                    id: i,
+                    owner: vaultData.owner,
+                    amount: vaultData.amount,
+                    unlockTime: Number(vaultData.unlock_time),
+                    createdAt: Number(vaultData.created_at),
+                    isActive: vaultData.is_active
+                  })
+                  console.log(`✅ Vault ${i} manually parsed and added`)
+                } else {
+                  console.log(`Vault ${i} owner mismatch: ${vaultData.owner} !== ${address}`)
                 }
               }
             }
