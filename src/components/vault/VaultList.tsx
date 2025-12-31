@@ -3,7 +3,7 @@ import { useSorobanReact } from '@soroban-react/core'
 import { VaultCard } from './VaultCard'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { Client, CONTRACT_ID, Address } from '@/contracts/src/index'
+import { Client, CONTRACT_ID, Address, StrKey } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
 interface Vault {
@@ -112,12 +112,22 @@ export const VaultList = () => {
                       if (valScVal.switch().name === 'scvAddress') {
                         try {
                           const scAddr = valScVal.address()
-                          // Use Address.fromScVal to convert the entire ScVal
-                          vaultData.owner = Address.fromScVal(valScVal).toString()
-                        } catch (addrErr) {
-                          console.error(`Vault ${i} address parsing error:`, addrErr)
-                          // Log the raw value for debugging
-                          console.log('Raw address ScVal:', valScVal)
+                          const addrType = scAddr.switch()
+                          
+                          if (addrType.name === 'scAddressTypeAccount') {
+                            // Public key account
+                            const pubKeyBuffer = scAddr.accountId().ed25519()
+                            vaultData.owner = StrKey.encodeEd25519PublicKey(pubKeyBuffer)
+                          } else if (addrType.name === 'scAddressTypeContract') {
+                            // Contract address
+                            const contractBuffer = scAddr.contractId()
+                            vaultData.owner = StrKey.encodeContract(contractBuffer)
+                          }
+                        } catch (addrErr: any) {
+                          console.error(`Vault ${i} address parsing error:`, addrErr.message)
+                          // Log type info
+                          console.log('valScVal type:', valScVal.switch().name)
+                          console.log('valScVal value:', valScVal)
                         }
                       }
                     } else if (key === 'amount') {
