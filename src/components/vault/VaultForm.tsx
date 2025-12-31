@@ -53,7 +53,8 @@ export const VaultForm = () => {
     void fetchBalance()
   }, [address])
 
-  co// Validation
+  const handleCreateVault = async () => {
+    // Validation
     if (!address || !server) {
       toast.error('Please connect your wallet first')
       return
