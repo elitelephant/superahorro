@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { CONTRACT_ID, Address, nativeToScVal, Contract, TransactionBuilder, BASE_FEE, rpc } from '@/contracts/src/index'
+import { CONTRACT_ID, Address, nativeToScVal, Contract, TransactionBuilder, BASE_FEE, rpc, xdr } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
 const SorobanRpc = rpc
@@ -122,10 +122,13 @@ export const VaultForm = () => {
         networkPassphrase: 'Test SDF Network ; September 2015'
       })
       
-      // Parse from same SDK version
-      const signedTx = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015')
+      // Convert XDR string to TransactionEnvelope using xdr module
+      const txEnvelope = xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
       
-      // Submit - sendTransaction accepts any object with toXDR method
+      // Create Transaction with the envelope
+      const signedTx = TransactionBuilder.fromXDR(txEnvelope, 'Test SDF Network ; September 2015')
+      
+      // Submit signed transaction
       const sendResult = await rpcServer.sendTransaction(signedTx as any)
       
       // Wait for result
