@@ -131,20 +131,33 @@ export const VaultForm = () => {
         throw new Error(`Simulation error: ${simulationResult.error}`)
       }
       
-      // Get the prepared transaction XDR from simulation (already has auth and soroban data)
-      const preparedTxXdr = simulationResult.transactionData
-      
-      // Rebuild transaction with simulation data
-      const txWithSimData = TransactionBuilder.fromXDR(builtTx.toXDR(), NETWORK_PASSPHRASE)
-      
-      // Update with soroban data from simulation
-      if (preparedTxXdr) {
-        // The simulation already returns a transaction we can use
-        // We just need to get it signed
+      // Check if simulation has what we need
+      if (!simulationResult.transactionData) {
+        throw new Error('Simulation did not return transaction data')
       }
       
-      // For now, use the built transaction as-is for signing
-      const txToSign = builtTx
+      // Parse the built transaction
+      const txBuilder = TransactionBuilder.fromXDR(builtTx.toXDR(), NETWORK_PASSPHRASE)
+      
+      // Get soroban data from simulation
+      const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
+      
+      // Add soroban data to transaction
+      const tx = txBuilder as any
+      if (tx.operations && tx.operations[0]) {
+        tx.operations[0].source = null // Remove operation source
+      }
+      
+      // Update the transaction with soroban auth and data
+      tx.sorobanData = sorobanData
+      
+      // Set min resource fee from simulation
+      if (simulationResult.minResourceFee) {
+        const totalFee = BigInt(BASE_FEE) + BigInt(simulationResult.minResourceFee)
+        tx.fee = totalFee.toString()
+      }
+      
+      const txToSign = tx
       
       // Sign transaction
       const connector = connectors?.[0]
