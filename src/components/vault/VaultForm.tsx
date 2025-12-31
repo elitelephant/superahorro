@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { Client, CONTRACT_ID } from '@/contracts/src/index'
+import { Client, CONTRACT_ID, Address, xdr, nativeToScVal } from '@/contracts/src/index'
 import { rpc } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
@@ -81,12 +81,34 @@ export const VaultForm = () => {
       
       toast.loading('Preparing transaction...')
       
-      // Build transaction using generated client
-      const tx = await client.create_vault({
-        owner: address,
-        amount: amountInStroops,
-        lock_duration_days: BigInt(days)
-      })
+      // Try to build transaction with workaround for Address serialization bug
+      let tx
+      try {
+        // First attempt: use generated client (may fail with "Bad union switch: 4")
+        tx = await client.create_vault({
+          owner: address,
+          amount: amountInStroops,
+          lock_duration_days: BigInt(days)
+        })
+      } catch (buildError: any) {
+        // If it fails with union switch error, manually construct the call
+        if (buildError.message?.includes('Bad union switch')) {
+          console.log('Using manual XDR construction for create_vault')
+          
+          // Manually create ScVals for parameters
+          const ownerScVal = Address.fromString(address).toScVal()
+          const amountScVal = nativeToScVal(amountInStroops, { type: 'i128' })
+          const daysScVal = nativeToScVal(BigInt(days), { type: 'u64' })
+          
+          // Use the client's method but with manual parameter construction
+          tx = await (client as any).call(
+            'create_vault',
+            ...[ownerScVal, amountScVal, daysScVal]
+          )
+        } else {
+          throw buildError
+        }
+      }
       
       // Get connector to sign
       const connector = connectors?.[0]
