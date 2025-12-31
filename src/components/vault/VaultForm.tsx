@@ -146,38 +146,13 @@ export const VaultForm = () => {
       console.log('✅ Min resource fee:', simulationResult.minResourceFee)
       console.log('✅ Auth entries:', simulationResult.results?.[0]?.auth)
       
-      // Parse soroban data from simulation
-      const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
+      // Use assembleTransaction to properly combine the simulation results
+      // This handles soroban data, auth entries, and fees automatically
+      const assembledTx = rpc.assembleTransaction(builtTx, simulationResult).build()
       
-      // Apply auth entries from simulation to the operation
-      let finalOperation = operation
-      if (simulationResult.results?.[0]?.auth && simulationResult.results[0].auth.length > 0) {
-        const authEntries = simulationResult.results[0].auth.map((entry: string) =>
-          xdr.SorobanAuthorizationEntry.fromXDR(entry, 'base64')
-        )
-        
-        // Create new operation with auth
-        const opBody = (operation as any).body()
-        const func = opBody.invokeHostFunctionOp().hostFunction()
-        
-        finalOperation = Operation.invokeHostFunction({
-          func: func,
-          auth: authEntries
-        })
-      }
+      console.log('✅ Assembled transaction ready')
       
-      // Calculate total fee
-      const totalFee = BigInt(BASE_FEE) + BigInt(simulationResult.minResourceFee || '0')
-      
-      // Rebuild transaction with soroban data and correct fee
-      const txToSign = new TransactionBuilder(sourceAccount, {
-        fee: totalFee.toString(),
-        networkPassphrase: NETWORK_PASSPHRASE,
-      })
-        .addOperation(finalOperation)
-        .setSorobanData(sorobanData)
-        .setTimeout(300)
-        .build()
+      const txToSign = assembledTx
       
       // Sign transaction
       const connector = connectors?.[0]
