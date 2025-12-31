@@ -96,12 +96,15 @@ export const VaultForm = () => {
         nativeToScVal(BigInt(days), { type: 'u64' })
       ]
       
+      // Create the contract operation
+      const operation = contract.call('create_vault', ...params)
+      
       // Build and simulate transaction using fetch (bypass SDK type conflicts)
       const builtTx = new TransactionBuilder(sourceAccount, {
         fee: BASE_FEE,
         networkPassphrase: NETWORK_PASSPHRASE
       })
-        .addOperation(contract.call('create_vault', ...params))
+        .addOperation(operation)
         .setTimeout(30)
         .build()
       
@@ -136,28 +139,21 @@ export const VaultForm = () => {
         throw new Error('Simulation did not return transaction data')
       }
       
-      // Parse the built transaction
-      const txBuilder = TransactionBuilder.fromXDR(builtTx.toXDR(), NETWORK_PASSPHRASE)
-      
-      // Get soroban data from simulation
+      // Parse soroban data from simulation
       const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
       
-      // Add soroban data to transaction
-      const tx = txBuilder as any
-      if (tx.operations && tx.operations[0]) {
-        tx.operations[0].source = null // Remove operation source
-      }
+      // Calculate total fee
+      const totalFee = BigInt(BASE_FEE) + BigInt(simulationResult.minResourceFee || '0')
       
-      // Update the transaction with soroban auth and data
-      tx.sorobanData = sorobanData
-      
-      // Set min resource fee from simulation
-      if (simulationResult.minResourceFee) {
-        const totalFee = BigInt(BASE_FEE) + BigInt(simulationResult.minResourceFee)
-        tx.fee = totalFee.toString()
-      }
-      
-      const txToSign = tx
+      // Rebuild transaction with soroban data and correct fee
+      const txToSign = new TransactionBuilder(sourceAccount, {
+        fee: totalFee.toString(),
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(operation)
+        .setSorobanData(sorobanData)
+        .setTimeout(300)
+        .build()
       
       // Sign transaction
       const connector = connectors?.[0]
