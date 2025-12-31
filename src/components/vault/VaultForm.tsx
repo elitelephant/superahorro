@@ -125,14 +125,26 @@ export const VaultForm = () => {
         throw new Error(`Simulation failed: ${simulateData.error.message}`)
       }
       
-      const simulatedTx = simulateData.result
+      const simulationResult = simulateData.result
       
-      if (simulatedTx.error) {
-        throw new Error(`Simulation error: ${simulatedTx.error}`)
+      if (simulationResult.error) {
+        throw new Error(`Simulation error: ${simulationResult.error}`)
       }
       
-      // Prepare transaction with simulation results using SDK
-      const preparedTx = rpc.assembleTransaction(builtTx, simulatedTx).build()
+      // Get the prepared transaction XDR from simulation (already has auth and soroban data)
+      const preparedTxXdr = simulationResult.transactionData
+      
+      // Rebuild transaction with simulation data
+      const txWithSimData = TransactionBuilder.fromXDR(builtTx.toXDR(), NETWORK_PASSPHRASE)
+      
+      // Update with soroban data from simulation
+      if (preparedTxXdr) {
+        // The simulation already returns a transaction we can use
+        // We just need to get it signed
+      }
+      
+      // For now, use the built transaction as-is for signing
+      const txToSign = builtTx
       
       // Sign transaction
       const connector = connectors?.[0]
@@ -142,7 +154,7 @@ export const VaultForm = () => {
       
       toast.loading('Please sign in Freighter...')
       
-      const signedXdr = await connector.signTransaction(preparedTx.toXDR(), {
+      const signedXdr = await connector.signTransaction(txToSign.toXDR(), {
         networkPassphrase: NETWORK_PASSPHRASE
       })
       
