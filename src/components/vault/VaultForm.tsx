@@ -10,6 +10,7 @@ import {
   Contract,
   TransactionBuilder,
   BASE_FEE,
+  Operation,
   rpc,
   xdr
 } from '@/contracts/src/index'
@@ -148,6 +149,23 @@ export const VaultForm = () => {
       // Parse soroban data from simulation
       const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
       
+      // Apply auth entries from simulation to the operation
+      let finalOperation = operation
+      if (simulationResult.results?.[0]?.auth && simulationResult.results[0].auth.length > 0) {
+        const authEntries = simulationResult.results[0].auth.map((entry: string) =>
+          xdr.SorobanAuthorizationEntry.fromXDR(entry, 'base64')
+        )
+        
+        // Create new operation with auth
+        const opBody = (operation as any).body()
+        const func = opBody.invokeHostFunctionOp().hostFunction()
+        
+        finalOperation = Operation.invokeHostFunction({
+          func: func,
+          auth: authEntries
+        })
+      }
+      
       // Calculate total fee
       const totalFee = BigInt(BASE_FEE) + BigInt(simulationResult.minResourceFee || '0')
       
@@ -156,7 +174,7 @@ export const VaultForm = () => {
         fee: totalFee.toString(),
         networkPassphrase: NETWORK_PASSPHRASE,
       })
-        .addOperation(operation)
+        .addOperation(finalOperation)
         .setSorobanData(sorobanData)
         .setTimeout(300)
         .build()
