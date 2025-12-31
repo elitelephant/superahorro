@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { Client } from '@/contracts/src/index'
+import { Client, CONTRACT_ID } from '@/contracts/src/index'
 import { rpc } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
+
+// Helper to copy to clipboard
+const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text)
+  toast.success('Dirección copiada al portapapeles')
+}
 
 export const VaultForm = () => {
   const { address, server, connectors } = useSorobanReact()
@@ -68,7 +74,7 @@ export const VaultForm = () => {
       
       const client = new Client({
         publicKey: address,
-        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
+        contractId: CONTRACT_ID,
         networkPassphrase: 'Test SDF Network ; September 2015',
         rpcUrl: 'https://soroban-testnet.stellar.org'
       })
@@ -199,6 +205,23 @@ export const VaultForm = () => {
             Connect your wallet to create a vault
           </p>
         )}
+
+        {/* Contract Address */}
+        <div tw="mt-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+          <div tw="text-xs text-gray-400 mb-1">Contract Address</div>
+          <div tw="flex items-center gap-2">
+            <code tw="text-xs text-gray-300 break-all flex-1 font-mono">{CONTRACT_ID}</code>
+            <button
+              onClick={() => copyToClipboard(CONTRACT_ID)}
+              tw="p-2 hover:bg-gray-700 rounded transition-colors flex-shrink-0"
+              title="Copy to clipboard"
+            >
+              <svg tw="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </Card>
   )

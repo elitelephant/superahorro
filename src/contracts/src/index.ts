@@ -36,6 +36,9 @@ export const networks = {
   }
 } as const
 
+// Export contract ID for easy access
+export const CONTRACT_ID = networks.testnet.contractId
+
 
 /**
  * Represents a single savings vault

@@ -3,8 +3,9 @@ import { useSorobanReact } from '@soroban-react/core'
 import { VaultCard } from './VaultCard'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { Client } from '@/contracts/src/index'
+import { Client, CONTRACT_ID } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
+import { Address, xdr } from '@stellar/stellar-sdk'
 
 interface Vault {
   id: number
@@ -28,14 +29,16 @@ export const VaultList = () => {
       
       const client = new Client({
         publicKey: address,
-        contractId: 'CDPK7XBPQKRYR75U7ETJQOHGYWPH5PUJRY2TXCI23DEGG4BCEXQTCZD2',
+        contractId: CONTRACT_ID,
         networkPassphrase: 'Test SDF Network ; September 2015',
         rpcUrl: 'https://soroban-testnet.stellar.org'
       })
 
-      // Get total vault count
+      // Get total vault count - this works fine
       const countTx = await client.get_vault_count()
       const count = Number(countTx.result)
+      
+      console.log('Total vaults:', count)
 
       if (count === 0) {
         setVaults([])
@@ -46,25 +49,46 @@ export const VaultList = () => {
       const userVaults: Vault[] = []
       for (let i = 1; i <= count; i++) {
         try {
+          // Build and simulate transaction
           const vaultTx = await client.get_vault({ vault_id: BigInt(i) })
-          const vaultData = vaultTx.result
           
-          if (vaultData && vaultData.owner === address) {
-            userVaults.push({
-              id: i,
-              owner: vaultData.owner,
-              amount: vaultData.amount,
-              unlockTime: Number(vaultData.unlock_time),
-              createdAt: Number(vaultData.created_at),
-              isActive: vaultData.is_active
-            })
+          // Try to access result - if it fails, catch the error
+          try {
+            const vaultData = vaultTx.result
+            
+            // Result successfully deserialized
+            if (vaultData && vaultData.owner === address) {
+              userVaults.push({
+                id: i,
+                owner: vaultData.owner,
+                amount: vaultData.amount,
+                unlockTime: Number(vaultData.unlock_time),
+                createdAt: Number(vaultData.created_at),
+                isActive: vaultData.is_active
+              })
+              console.log(`Vault ${i} loaded successfully`)
+            }
+          } catch (deserializeErr) {
+            // Deserialization failed - try manual parsing
+            console.log(`Vault ${i}: Deserialization failed, trying manual parse`)
+            
+            // Get the simulation directly from internals
+            const sim: any = await (vaultTx as any).simulation
+            
+            if (sim?.result?.retval) {
+              const resultXdr = sim.result.retval
+              console.log(`Vault ${i} raw XDR type:`, resultXdr.switch().name)
+              
+              // Manual parsing would go here, but for now just log
+              // This is complex and error-prone
+            }
           }
         } catch (err) {
-          // Vault doesn't exist or error, skip
-          console.log(`Vault ${i} not found or error`)
+          console.error(`Vault ${i} error:`, err)
         }
       }
 
+      console.log('User vaults found:', userVaults.length)
       setVaults(userVaults)
     } catch (error: any) {
       console.error('Error loading vaults:', error)
