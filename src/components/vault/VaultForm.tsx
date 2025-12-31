@@ -126,47 +126,82 @@ export const VaultForm = () => {
         networkPassphrase: NETWORK_PASSPHRASE
       })
       
-      // Submit transaction (workaround for type mismatch issues)
-      const txToSend = {
-        toXDR: () => signedXdr,
-        toEnvelope: () => xdr.TransactionEnvelope.fromXDR(signedXdr, 'base64')
+      // Submit transaction directly via RPC HTTP API (bypass SDK type issues)
+      const sendResponse = await fetch(RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'sendTransaction',
+          params: {
+            transaction: signedXdr
+          }
+        })
+      })
+      
+      const sendData = await sendResponse.json()
+      
+      if (sendData.error) {
+        throw new Error(sendData.error.message || 'Send transaction failed')
       }
       
-      const sendResult = await rpcServer.sendTransaction(txToSend as any)
+      const sendResult = sendData.result
       
       // Wait for confirmation
-      if (sendResult.status === 'PENDING') {
+      if (sendResult.status === 'PENDING' || sendResult.status === 'SUCCESS') {
+        const txHash = sendResult.hash
         let attempts = 0
-        let getResult = await rpcServer.getTransaction(sendResult.hash)
+        let confirmed = false
         
-        while (getResult.status === rpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 10) {
+        while (!confirmed && attempts < 10) {
           await new Promise(resolve => setTimeout(resolve, 1000))
-          getResult = await rpcServer.getTransaction(sendResult.hash)
+          
+          const statusResponse = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'getTransaction',
+              params: {
+                hash: txHash
+              }
+            })
+          })
+          
+          const statusData = await statusResponse.json()
+          
+          if (statusData.result?.status === 'SUCCESS') {
+            confirmed = true
+            toast.dismiss()
+            toast.success('Vault created successfully!')
+            setAmount('')
+            setLockDays('30')
+            
+            // Refresh balance
+            try {
+              const response = await fetch(`${HORIZON_URL}/accounts/${address}`)
+              const accountData = await response.json()
+              const xlmBalance = accountData.balances.find((b: any) => b.asset_type === 'native')
+              if (xlmBalance) {
+                setBalance(parseFloat(xlmBalance.balance).toFixed(2))
+              }
+            } catch (err) {
+              console.error('Error refreshing balance:', err)
+            }
+          } else if (statusData.result?.status === 'FAILED') {
+            throw new Error('Transaction failed on chain')
+          }
+          
           attempts++
         }
         
-        if (getResult.status === rpc.Api.GetTransactionStatus.SUCCESS) {
-          toast.dismiss()
-          toast.success('Vault created successfully!')
-          setAmount('')
-          setLockDays('30')
-          
-          // Refresh balance
-          try {
-            const response = await fetch(`${HORIZON_URL}/accounts/${address}`)
-            const accountData = await response.json()
-            const xlmBalance = accountData.balances.find((b: any) => b.asset_type === 'native')
-            if (xlmBalance) {
-              setBalance(parseFloat(xlmBalance.balance).toFixed(2))
-            }
-          } catch (err) {
-            console.error('Error refreshing balance:', err)
-          }
-        } else {
-          throw new Error(`Transaction failed: ${getResult.status}`)
+        if (!confirmed) {
+          throw new Error('Transaction confirmation timeout')
         }
       } else {
-        throw new Error(`Send transaction failed: ${sendResult.status}`)
+        throw new Error(`Unexpected status: ${sendResult.status}`)
       }
     } catch (error: any) {
       console.error('Error creating vault:', error)
