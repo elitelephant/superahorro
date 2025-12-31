@@ -175,7 +175,6 @@ export const VaultForm = () => {
       // User-friendly error messages
       let errorMsg = 'Error al crear el vault'
       
-      let errorMsg = 'Error al crear el vault'
       if (error?.message?.includes('insufficient')) {
         errorMsg = `Balance insuficiente. Necesitas ${amount} XLM + fees (~0.01 XLM)`
       } else if (error?.message?.includes('not found')) {
