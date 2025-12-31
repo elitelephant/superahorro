@@ -130,6 +130,8 @@ export const VaultForm = () => {
       
       const simulationResult = simulateData.result
       
+      console.log('🔍 Simulation result:', simulationResult)
+      
       if (simulationResult.error) {
         throw new Error(`Simulation error: ${simulationResult.error}`)
       }
@@ -138,6 +140,10 @@ export const VaultForm = () => {
       if (!simulationResult.transactionData) {
         throw new Error('Simulation did not return transaction data')
       }
+      
+      console.log('✅ Transaction data:', simulationResult.transactionData)
+      console.log('✅ Min resource fee:', simulationResult.minResourceFee)
+      console.log('✅ Auth entries:', simulationResult.results?.[0]?.auth)
       
       // Parse soroban data from simulation
       const sorobanData = xdr.SorobanTransactionData.fromXDR(simulationResult.transactionData, 'base64')
