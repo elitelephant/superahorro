@@ -122,9 +122,11 @@ export const VaultForm = () => {
         networkPassphrase: 'Test SDF Network ; September 2015'
       })
       
+      // Parse signed XDR back to Transaction
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015') as Transaction
+      
       // Send transaction
-      const txEnvelope = new Transaction(signedXdr, 'Test SDF Network ; September 2015')
-      const sendResult = await rpcServer.sendTransaction(txEnvelope)
+      const sendResult = await rpcServer.sendTransaction(signedTx)
       
       // Wait for result
       if (sendResult.status === 'PENDING') {
