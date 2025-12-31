@@ -6,7 +6,16 @@
  * @type {import('next').NextConfig}
  **/
 let nextConfig = {
-  transpilePackages: [],
+  transpilePackages: ['@stellar/stellar-sdk'],
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    }
+    return config
+  },
 }
 
 const withTwin = require('./withTwin.js')
