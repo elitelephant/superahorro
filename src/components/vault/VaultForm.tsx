@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { Client, CONTRACT_ID, Address, xdr, nativeToScVal } from '@/contracts/src/index'
+import { CONTRACT_ID, Address, nativeToScVal, Contract, TransactionBuilder, BASE_FEE } from '@/contracts/src/index'
 import { rpc } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
+
+const SorobanRpc = rpc
 
 // Helper to copy to clipboard
 const copyToClipboard = (text: string) => {
@@ -72,43 +74,40 @@ export const VaultForm = () => {
       // Convert XLM to stroops (7 decimals)
       const amountInStroops = BigInt(Math.floor(parseFloat(amount) * 10_000_000))
       
-      const client = new Client({
-        publicKey: address,
-        contractId: CONTRACT_ID,
-        networkPassphrase: 'Test SDF Network ; September 2015',
-        rpcUrl: 'https://soroban-testnet.stellar.org'
-      })
-      
       toast.loading('Preparing transaction...')
       
-      // Try to build transaction with workaround for Address serialization bug
-      let tx
-      try {
-        // First attempt: use generated client (may fail with "Bad union switch: 4")
-        tx = await client.create_vault({
-          owner: address,
-          amount: amountInStroops,
-          lock_duration_days: BigInt(days)
-        })
-      } catch (buildError: any) {
-        // If it fails with union switch error, manually construct the call
-        if (buildError.message?.includes('Bad union switch')) {
-          console.log('Using manual XDR construction for create_vault')
-          
-          // Manually create ScVals for parameters
-          const ownerScVal = Address.fromString(address).toScVal()
-          const amountScVal = nativeToScVal(amountInStroops, { type: 'i128' })
-          const daysScVal = nativeToScVal(BigInt(days), { type: 'u64' })
-          
-          // Use the client's method but with manual parameter construction
-          tx = await (client as any).call(
-            'create_vault',
-            ...[ownerScVal, amountScVal, daysScVal]
-          )
-        } else {
-          throw buildError
-        }
+      // Build transaction manually to avoid Address serialization bug
+      const rpcServer = new SorobanRpc.Server('https://soroban-testnet.stellar.org')
+      const contract = new Contract(CONTRACT_ID)
+      
+      // Get source account
+      const sourceAccount = await rpcServer.getAccount(address)
+      
+      // Build parameters manually
+      const params = [
+        Address.fromString(address).toScVal(),  // owner
+        nativeToScVal(amountInStroops, { type: 'i128' }),  // amount
+        nativeToScVal(BigInt(days), { type: 'u64' })  // lock_duration_days
+      ]
+      
+      // Build transaction
+      const builtTx = new TransactionBuilder(sourceAccount, {
+        fee: BASE_FEE,
+        networkPassphrase: 'Test SDF Network ; September 2015'
+      })
+        .addOperation(contract.call('create_vault', ...params))
+        .setTimeout(30)
+        .build()
+      
+      // Simulate first
+      const simulatedTx = await rpcServer.simulateTransaction(builtTx)
+      
+      if (SorobanRpc.Api.isSimulationError(simulatedTx)) {
+        throw new Error(`Simulation failed: ${simulatedTx.error}`)
       }
+      
+      // Prepare transaction with simulation results
+      const preparedTx = SorobanRpc.assembleTransaction(builtTx, simulatedTx).build()
       
       // Get connector to sign
       const connector = connectors?.[0]
@@ -118,18 +117,35 @@ export const VaultForm = () => {
       
       toast.loading('Please sign in Freighter...')
       
-      // Sign and send
-      const result = await tx.signAndSend({
-        signTransaction: async (xdr: string) => {
-          const signedXdr = await connector.signTransaction(xdr, {
-            networkPassphrase: 'Test SDF Network ; September 2015'
-          })
-          return signedXdr as any
-        }
+      // Sign transaction
+      const signedXdr = await connector.signTransaction(preparedTx.toXDR(), {
+        networkPassphrase: 'Test SDF Network ; September 2015'
       })
       
-      toast.dismiss()
-      toast.success('Vault created successfully!')
+      // Send transaction
+      const txToSubmit = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015')
+      const sendResult = await rpcServer.sendTransaction(txToSubmit)
+      
+      // Wait for result
+      if (sendResult.status === 'PENDING') {
+        let getResult = await rpcServer.getTransaction(sendResult.hash)
+        let attempts = 0
+        
+        while (getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          getResult = await rpcServer.getTransaction(sendResult.hash)
+          attempts++
+        }
+        
+        if (getResult.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+          toast.dismiss()
+          toast.success('Vault created successfully!')
+        } else {
+          throw new Error(`Transaction failed: ${getResult.status}`)
+        }
+      } else {
+        throw new Error(`Send transaction failed: ${sendResult.status}`)
+      }
       setAmount('')
       setLockDays('30')
       
