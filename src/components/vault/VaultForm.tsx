@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSorobanReact } from '@soroban-react/core'
 import toast from 'react-hot-toast'
 import 'twin.macro'
-import { CONTRACT_ID, Address, nativeToScVal, Contract, TransactionBuilder, BASE_FEE } from '@/contracts/src/index'
+import { CONTRACT_ID, Address, nativeToScVal, Contract, TransactionBuilder, BASE_FEE, Transaction } from '@/contracts/src/index'
 import { rpc } from '@/contracts/src/index'
 import { Card } from '@chakra-ui/react'
 
@@ -123,8 +123,8 @@ export const VaultForm = () => {
       })
       
       // Send transaction
-      const txToSubmit = TransactionBuilder.fromXDR(signedXdr, 'Test SDF Network ; September 2015')
-      const sendResult = await rpcServer.sendTransaction(txToSubmit)
+      const txEnvelope = new Transaction(signedXdr, 'Test SDF Network ; September 2015')
+      const sendResult = await rpcServer.sendTransaction(txEnvelope)
       
       // Wait for result
       if (sendResult.status === 'PENDING') {
