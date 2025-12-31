@@ -62,44 +62,15 @@ Dentro del ecosistema, aún existen pocas herramientas enfocadas específicament
 
 El contrato está escrito en Rust usando Soroban (contratos inteligentes de Stellar). El frontend usa Next.js 14 con TypeScript, Chakra UI, y se integra con Freighter wallet vía @soroban-react. El proyecto está basado en el [Soroban React Boilerplate](https://github.com/paltalabs/soroban-react-boilerplate) de PaltaLabs.
 
-## Visión a Futuro
+## Advertencia
 
-La visión detrás de SuperAhorro va más allá de una simple bóveda bloqueada por tiempo. El objetivo es explorar:
-
-- **Bóvedas multi-activo**: No solo XLM, sino también otros tokens del ecosistema Stellar
-- **Condiciones dinámicas**: Bóvedas que se desbloqueen no solo por tiempo, sino por precio u otras condiciones
-- **Dimensión colectiva**: Las penalizaciones podrían alimentar una bóveda común que se distribuya bajo ciertas condiciones, incorporando un aspecto social sin perder la lógica individual
-
-## Seguridad
-
-**Importante**: SuperAhorro está actualmente en **testnet** y no ha sido auditado profesionalmente. No uses fondos reales hasta que esté en mainnet con auditoría completa.
-
-**Principios de seguridad:**
-- Los fondos están bloqueados en contratos auditables públicamente
-- No hay acceso administrativo a los fondos de los usuarios
-- Código abierto y verificable en la blockchain
-- Desarrollo testnet-first
-
-## Contribuir
-
-Las contribuciones son bienvenidas. Si quieres ayudar:
-
-1. Haz un fork del repositorio
-2. Crea una rama para tu feature
-3. Prueba tus cambios exhaustivamente
-4. Envía un pull request con una descripción clara
-
-Si quieres ayudar, hay áreas específicas donde el impacto sería enorme. Los tests automatizados de integración son una necesidad real—tener confianza en que todo funciona junto sin depender de pruebas manuales cambiaría el juego. La auditoría de seguridad es crítica para poder pensar en mainnet. Las mejoras en UX/UI siempre son bienvenidas, especialmente de personas que entienden diseño mejor que yo. La traducción completa al español de la interfaz está pendiente (no solo el README). Y soporte para más wallets además de Freighter ampliaría significativamente el alcance del proyecto.
+**Importante**: SuperAhorro está en **testnet** y no ha sido auditado. Es un proyecto de experimentación. No uses fondos reales.
 
 ## Cierre
 
 SuperAhorro no busca maximizar retornos ni ofrecer yields complejos. **Busca ayudar a las personas a cumplir el plan financiero que ellas mismas definieron**, confiando en reglas claras y simples en lugar de la fuerza de voluntad.
 
 Si eso resuena contigo, dale una oportunidad en testnet y comparte tu feedback.
-
-## Licencia
-
-MIT License - ver [LICENSE](LICENSE) para más detalles
 
 ---
 
