@@ -110,9 +110,15 @@ export const VaultList = () => {
                     if (key === 'owner') {
                       // owner is Address - convert to string
                       if (valScVal.switch().name === 'scvAddress') {
-                        const addr = valScVal.address()
-                        // Convert Address to string (G... format)
-                        vaultData.owner = Address.fromScAddress(addr).toString()
+                        try {
+                          const scAddr = valScVal.address()
+                          // Use Address.fromScVal to convert the entire ScVal
+                          vaultData.owner = Address.fromScVal(valScVal).toString()
+                        } catch (addrErr) {
+                          console.error(`Vault ${i} address parsing error:`, addrErr)
+                          // Log the raw value for debugging
+                          console.log('Raw address ScVal:', valScVal)
+                        }
                       }
                     } else if (key === 'amount') {
                       // i128
