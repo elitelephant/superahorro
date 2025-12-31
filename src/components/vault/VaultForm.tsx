@@ -96,7 +96,7 @@ export const VaultForm = () => {
         nativeToScVal(BigInt(days), { type: 'u64' })
       ]
       
-      // Build and simulate transaction
+      // Build and simulate transaction using fetch (bypass SDK type conflicts)
       const builtTx = new TransactionBuilder(sourceAccount, {
         fee: BASE_FEE,
         networkPassphrase: NETWORK_PASSPHRASE
@@ -105,13 +105,33 @@ export const VaultForm = () => {
         .setTimeout(30)
         .build()
       
-      const simulatedTx = await rpcServer.simulateTransaction(builtTx)
+      // Simulate via direct RPC call
+      const simulateResponse = await fetch(RPC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'simulateTransaction',
+          params: {
+            transaction: builtTx.toXDR()
+          }
+        })
+      })
       
-      if (rpc.Api.isSimulationError(simulatedTx)) {
-        throw new Error(`Simulation failed: ${simulatedTx.error}`)
+      const simulateData = await simulateResponse.json()
+      
+      if (simulateData.error) {
+        throw new Error(`Simulation failed: ${simulateData.error.message}`)
       }
       
-      // Prepare transaction with simulation results
+      const simulatedTx = simulateData.result
+      
+      if (simulatedTx.error) {
+        throw new Error(`Simulation error: ${simulatedTx.error}`)
+      }
+      
+      // Prepare transaction with simulation results using SDK
       const preparedTx = rpc.assembleTransaction(builtTx, simulatedTx).build()
       
       // Sign transaction
